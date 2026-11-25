@@ -674,41 +674,67 @@ async function connectBLE() {
         }
 
         state.bleDevice = bleDevice;
-        state.bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+        state.bleDevice.removeEventListener('gattserverdisconnected', onDisconnected);
 
         logMessage('SYS', `Périphérique sélectionné : ${state.bleDevice.name}. Connexion GATT...`);
 
-        // Boucle de reconnexion automatique (évite les échecs GATT fréquents sous Windows/Chrome au 1er essai)
+        // Boucle de reconnexion robuste (Windows/Chrome échoue souvent aux 1ers essais GATT avec l'ESP32-C3)
         let server = null;
         let service = null;
-        const maxAttempts = 3;
+        const maxAttempts = 5;
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
             try {
                 if (attempt > 1) {
-                    logMessage('SYS', `Nouvelle tentative GATT (${attempt}/${maxAttempts})...`);
-                    if (state.bleDevice.gatt.connected) {
-                        state.bleDevice.gatt.disconnect();
-                    }
-                    await new Promise(r => setTimeout(r, 350));
+                    const backoffMs = 400 + attempt * 200;
+                    logMessage('SYS', `Nouvelle tentative GATT (${attempt}/${maxAttempts}) dans ${backoffMs} ms...`);
+                    try {
+                        if (state.bleDevice.gatt.connected) {
+                            state.bleDevice.gatt.disconnect();
+                        }
+                    } catch (_) {}
+                    await new Promise(r => setTimeout(r, backoffMs));
                 }
 
                 server = await state.bleDevice.gatt.connect();
-                // Délai de stabilisation indispensable sur ESP32-C3 + Windows BLE
-                await new Promise(r => setTimeout(r, 150));
+                // Délai de stabilisation indispensable sur ESP32-C3 + pile BLE Windows
+                await new Promise(r => setTimeout(r, 250));
+
+                if (!server.connected) {
+                    throw new Error('GATT déconnecté juste après connect()');
+                }
 
                 service = await server.getPrimaryService(NUS_SERVICE_UUID);
                 state.rxCharacteristic = await service.getCharacteristic(NUS_RX_CHAR_UUID);
                 state.txCharacteristic = await service.getCharacteristic(NUS_TX_CHAR_UUID);
 
-                await new Promise(r => setTimeout(r, 100));
-                await state.txCharacteristic.startNotifications();
-                break; // Connexion & souscription réussies
+                await new Promise(r => setTimeout(r, 150));
+
+                // Souscription aux notifications avec mini-retry local (fréquent sous Windows)
+                let notifOk = false;
+                for (let nTry = 1; nTry <= 2; nTry++) {
+                    try {
+                        await state.txCharacteristic.startNotifications();
+                        notifOk = true;
+                        break;
+                    } catch (notifErr) {
+                        if (nTry === 2) throw notifErr;
+                        await new Promise(r => setTimeout(r, 200));
+                    }
+                }
+                if (notifOk) break;
             } catch (err) {
                 console.warn(`Tentative BLE ${attempt}/${maxAttempts} échouée:`, err);
+                try {
+                    if (state.bleDevice.gatt.connected) {
+                        state.bleDevice.gatt.disconnect();
+                    }
+                } catch (_) {}
                 if (attempt === maxAttempts) throw err;
             }
         }
 
+        state.bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
+        state.txCharacteristic.removeEventListener('characteristicvaluechanged', handleBleNotification);
         state.txCharacteristic.addEventListener('characteristicvaluechanged', handleBleNotification);
 
         state.connected = true;
