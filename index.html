@@ -1,0 +1,886 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>HAL 95 &bull; Heuristic Algorithmic Robot Controller</title>
+    <!-- Polices Google Fonts : Orbitron & Outfit pour l'UI, JetBrains Mono pour la console -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@500;700;900&family=Outfit:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css?v=118">
+</head>
+
+<body class="dark-theme hal-theme">
+    <!-- Halo rougeoyant iconique de HAL 9000 en fond -->
+    <div class="bg-glow hal-eye-glow"></div>
+    <div class="bg-glow hal-subtle-glow"></div>
+
+    <div class="app-container">
+        <!-- Barre de navigation supérieure style console Discovery One -->
+        <header class="app-header">
+            <div class="brand">
+                <!-- Logo vectoriel officiel du robot HAL 95 avec œil rouge interactif -->
+                <div class="brand-logo-wrapper" id="halLogoBadge">
+                    <svg class="hal-robot-logo" viewBox="0 0 200 200" width="46" height="46" fill="none"
+                        stroke="currentColor" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round">
+                        <!-- Dôme supérieur de HAL -->
+                        <path d="M 50 90 A 50 50 0 0 1 150 90 Z" />
+                        <!-- Anneau externe de la lentille -->
+                        <circle cx="100" cy="62" r="23" stroke-width="4" />
+                        <!-- Anneau intermédiaire -->
+                        <circle cx="100" cy="62" r="14" stroke-width="2.5" />
+                        <!-- Pupille rouge incandescente de HAL 9000 -->
+                        <circle class="hal-eye-pupil" id="halLogoPupil" cx="100" cy="62" r="7.5" fill="#FF1E27"
+                            stroke="none" />
+                        <circle cx="97.5" cy="59.5" r="2" fill="#FFFFFF" stroke="none" />
+
+                        <!-- Boîtier rectangulaire central -->
+                        <rect x="54" y="98" width="92" height="40" stroke-width="4" />
+                        <!-- Détails panneau gauche : carré et voyant -->
+                        <rect x="64" y="108" width="8" height="8" stroke-width="2.5" />
+                        <circle cx="83" cy="112" r="3.5" stroke-width="2" />
+                        <!-- Réticule de visée droite -->
+                        <circle cx="128" cy="115" r="6.5" stroke-width="2" />
+                        <line x1="128" y1="105" x2="128" y2="125" stroke-width="2" />
+                        <line x1="118" y1="115" x2="138" y2="115" stroke-width="2" />
+                        <circle cx="128" cy="127" r="1.5" fill="currentColor" />
+
+                        <!-- Châssis articulé -->
+                        <path d="M 85 138 L 78 152 L 48 174" stroke-width="4" />
+                        <path d="M 115 138 L 122 152 L 152 174" stroke-width="4" />
+                        <line x1="48" y1="174" x2="152" y2="174" stroke-width="3" />
+
+                        <!-- Roues motrices -->
+                        <circle cx="48" cy="174" r="14" stroke-width="4" fill="#0C0E14" />
+                        <circle cx="48" cy="174" r="4.5" fill="currentColor" stroke="none" />
+
+                        <circle cx="152" cy="174" r="14" stroke-width="4" fill="#0C0E14" />
+                        <circle cx="152" cy="174" r="4.5" fill="currentColor" stroke="none" />
+                    </svg>
+                </div>
+                <div class="brand-text">
+                    <h1>HAL <span>95</span></h1>
+                    <p class="subtitle">HEURISTIC ALGORITHMIC SYSTEM &bull; STM32 TELEMETRY</p>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <!-- Statut opérationnel style Kubrick -->
+                <div class="connection-pill hal-pill">
+                    <div id="statusDot" class="status-dot disconnected"></div>
+                    <span id="statusText">CIRCUITS NON RELIÉS</span>
+                </div>
+
+                <!-- Indicateur du Mode Opératoire Actif (Vision HSV vs Autonome) -->
+                <div class="mode-indicator-pill" id="modeIndicatorPill" title="Mode de guidage actuel de la mission HAL 95. Cliquez pour changer de mode ou relancer.">
+                    MODE: EN ATTENTE
+                </div>
+
+                <!-- Jauge de batterie robot HAL 95 (Discovery One) -->
+                <div class="battery-pill hal-battery-pill" id="batteryWidget"
+                    title="Niveau de batterie du robot HAL 95">
+                    <span class="battery-charge-icon hidden" id="batteryChargeIcon" title="Batterie en charge (BQ25896)">⚡</span>
+                    <div class="battery-icon">
+                        <div class="battery-level-bar" id="batteryLevelBar" style="width: 85%;"></div>
+                    </div>
+                    <span class="battery-text" id="batteryPercent">85%</span>
+                    <span class="battery-volt" id="batteryVoltage">(7.8V)</span>
+                    <span class="battery-curr" id="batteryCurrent">-- mA</span>
+                </div>
+
+                <button id="btnConnectBle" class="btn btn-primary hal-btn-ble">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M6.5 6.5l11 11L12 23V1l5.5 5.5-11 11" />
+                    </svg>
+                    <span>Liaison BLE</span>
+                </button>
+
+                <div class="serial-baud-wrapper">
+                    <select id="baudRateSelect" class="baud-select hal-select" title="Vitesse du port USB (bauds)">
+                        <option value="115200" selected>115200 bd (Debug STM32 / ESP32-CAM)</option>
+                        <option value="460800">460800 bd (Debug STM32 / ESP32-CAM)</option>
+                        <option value="9600">9600 bd (Debug STM32 / ESP32-CAM)</option>
+                    </select>
+                </div>
+
+                <button id="btnConnectSerial" class="btn btn-secondary hal-btn-serial"
+                    title="Connexion filaire USB directe">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="2" y="6" width="20" height="12" rx="2" />
+                        <path d="M6 12h.01M10 12h.01M14 12h.01M18 12h.01" />
+                    </svg>
+                    <span>Port USB</span>
+                </button>
+
+                <button id="btnToggleVision" class="btn btn-icon hal-btn-icon"
+                    title="Afficher/Masquer la lentille optique">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="9" />
+                        <circle cx="12" cy="12" r="3" fill="currentColor" />
+                    </svg>
+                </button>
+
+                <button id="btnToggleMobileView" class="btn btn-icon hal-btn-icon"
+                    title="Basculer Vue Smartphone (Split 50/50)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                        <line x1="12" y1="18" x2="12.01" y2="18" />
+                    </svg>
+                </button>
+            </div>
+        </header>
+
+        <!-- Grille principale : Terminal + Panneau Lentille Optique HAL 9000 -->
+        <main class="main-layout" id="mainLayout">
+            <!-- SECTION TERMINAL & TELEMETRIE -->
+            <section class="terminal-panel glass-card hal-terminal-frame">
+                <!-- En-tête du terminal avec télémétrie du Discovery -->
+                <div class="panel-header hal-header-bar">
+                    <div class="panel-title">
+                        <span class="hal-tag-indicator">SYS-COMM</span>
+                        <span>TERMINAL DE TÉLÉMÉTRIE STM32</span>
+                    </div>
+
+                    <!-- Barres de télémétrie segmentées style consoles Discovery One -->
+                    <div class="terminal-stats hal-discovery-stats">
+                        <div class="hal-vu-group" title="Activité Réception Bus (RX)">
+                            <span class="vu-label">RX</span>
+                            <div class="hal-vu-meter" id="rxVuMeter">
+                                <span class="vu-seg"></span><span class="vu-seg"></span><span
+                                    class="vu-seg"></span><span class="vu-seg"></span>
+                                <span class="vu-seg"></span><span class="vu-seg"></span><span
+                                    class="vu-seg"></span><span class="vu-seg"></span>
+                            </div>
+                            <span class="stat-badge"><strong id="rxBytes">0</strong> <small>o</small></span>
+                        </div>
+
+                        <div class="hal-vu-group" title="Activité Émission Bus (TX)">
+                            <span class="vu-label">TX</span>
+                            <div class="hal-vu-meter" id="txVuMeter">
+                                <span class="vu-seg"></span><span class="vu-seg"></span><span
+                                    class="vu-seg"></span><span class="vu-seg"></span>
+                                <span class="vu-seg"></span><span class="vu-seg"></span><span
+                                    class="vu-seg"></span><span class="vu-seg"></span>
+                            </div>
+                            <span class="stat-badge"><strong id="txBytes">0</strong> <small>o</small></span>
+                        </div>
+
+                        <span class="stat-badge stat-bus"><span class="stat-label">BUS :</span> 460800 bd</span>
+                    </div>
+
+                    <div class="panel-tools">
+                        <label class="switch-container" title="Défilement automatique">
+                            <input type="checkbox" id="chkAutoScroll" checked>
+                            <span class="switch-slider"></span>
+                            <span class="switch-text">Auto-scroll</span>
+                        </label>
+
+                        <button id="btnClearLog" class="btn-subtle" title="Effacer l'écran">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path
+                                    d="M3 6h18M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2" />
+                            </svg>
+                        </button>
+
+                        <button id="btnDownloadLog" class="btn-subtle" title="Exporter les logs (.txt)">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Zone d'affichage des logs avec texture CRT discrète -->
+                <div class="terminal-body crt-scanlines" id="terminalOutput">
+                    <div class="log-entry system-msg hal-quote">
+                        <span class="timestamp">[HAL-95]</span>
+                        <span class="content">"Good morning, Dave. I am completely operational and all my circuits are
+                            functioning perfectly."</span>
+                    </div>
+                </div>
+
+                <!-- Boutons d'actions rapides (Macros robot & STM32) -->
+                <div class="quick-commands hal-macro-bar">
+                    <span class="macro-label">ORDRES STM32 :</span>
+                    <button class="macro-btn" data-cmd="PING">PING</button>
+                    <button class="macro-btn" data-cmd="INFO">INFO</button>
+                    <button class="macro-btn" data-cmd="STREAM,ON">STREAM ON</button>
+                    <button class="macro-btn" data-cmd="STREAM,OFF">STREAM OFF</button>
+                    <button class="macro-btn" data-cmd="BEEP" title="Émettre un bip sonore standard 440 Hz (150 ms)">🔔 BEEP</button>
+                    <button class="macro-btn" data-cmd="JINGLE" title="Jouer le jingle de victoire">🎵 JINGLE</button>
+                    <button class="macro-btn" data-cmd="BUZZ,STARWARS" title="Jouer la Marche Impériale (Star Wars)">⭐ STAR WARS</button>
+                    <button class="macro-btn" data-cmd="BUZZ,DAISY" title="Jouer Daisy Bell (Chanson mythique de HAL 9000)">🎶 DAISY</button>
+                    <button class="macro-btn" data-cmd="SENS?" title="Interroger l'état instantané des capteurs STM32 (ToF G/D & APDS-9960)">📏 SENS?</button>
+                    <button class="macro-btn" data-cmd="OLED:EYE:HAL" title="Afficher immédiatement l'Œil rouge mythique de HAL-9000 sur l'écran OLED">🔴 OLED HAL</button>
+                    <button class="macro-btn" data-cmd="OLED:EYE:EYES" title="Afficher les Yeux animés réagissant aux vitesses moteurs Vg/Vd sur l'écran OLED">👀 OLED YEUX</button>
+                    <button class="macro-btn hal-btn-emergency" data-cmd="MOTOR,STOP">MOTOR STOP (AE-35)</button>
+                    <button type="button" class="macro-btn hal-btn-poweroff" id="btnPowerOffMacro" title="Éteindre le robot en Ship Mode 0 mA (équivalent appui nQON 2.5s)">⏻ ÉTEINDRE (SHIP MODE)</button>
+                    <button class="macro-btn" data-cmd="ESP:VER" title="Vérifier la version du firmware ESP32-C3">🔖 ESP VER</button>
+                    <button class="macro-btn" data-cmd="ESP:OTA" title="Basculer l'ESP32-C3 en mode mise à jour sans fil Wi-Fi (SSID: HAL95_OTA / 192.168.4.1)">📡 ESP OTA</button>
+                    <button class="macro-btn" data-cmd="RESET">RESET</button>
+                </div>
+
+                <!-- Ligne Diagnostic Sous-Systèmes (INFO,...) -->
+                <div class="quick-commands hal-macro-bar hal-diag-bar">
+                    <span class="macro-label">DIAGNOSTIC :</span>
+                    <button class="macro-btn hal-btn-diag" data-cmd="INFO,FG" title="État Fuel Gauge BQ27220 (SOC, V, I, Capacité, Cycles, Santé)">⚡ INFO FG</button>
+                    <button class="macro-btn hal-btn-diag" data-cmd="INFO,CHG" title="État Chargeur BQ25896 (VBUS, VSYS, Charge, Défauts)">🔌 INFO CHG</button>
+                    <button class="macro-btn hal-btn-diag" data-cmd="INFO,DRV" title="État Driver DRV8833 (nFAULT, nSLEEP, PWM, Decay)">🚗 INFO DRV</button>
+                    <button class="macro-btn hal-btn-diag" data-cmd="INFO,TOF" title="État Capteurs ToF VL53L0X G/D (Distances, Ready)">📏 INFO TOF</button>
+                    <button class="macro-btn hal-btn-diag" data-cmd="INFO,COLOR" title="État Capteur Couleur APDS-9960 (RGB, Prox, Dominante)">🎨 INFO COLOR</button>
+                    <button class="macro-btn hal-btn-diag" data-cmd="INFO,ENC" title="État Encodeurs & Odométrie (Distances, Ticks, Vitesses)">⏱️ INFO ENC</button>
+                    <button class="macro-btn hal-btn-diag" data-cmd="INFO,SERVO" title="État Pince Servomoteur (Angle, Sweep)">🦾 INFO SERVO</button>
+                    <button class="macro-btn hal-btn-diag" data-cmd="INFO,ALL" title="Diagnostic complet de tous les sous-systèmes">📋 INFO TOUT</button>
+                </div>
+
+                <!-- Contrôle de la pince / Servomoteur HAL 95 -->
+                <div class="gripper-control-bar hal-gripper-bar">
+                    <div class="gripper-label-group">
+                        <span class="macro-label">PINCE ROBOT :</span>
+                        <span class="gripper-angle-badge" id="gripperAngleBadge" title="Angle consigné actuel (60° à 120°)">90°</span>
+                    </div>
+                    <div class="gripper-actions">
+                        <button type="button" class="gripper-btn btn-grip-close" id="btnGripClose" title="Saisir la canette / Fermer la pince (155°)">
+                            <span>🦾 SAISIR CANETTE</span>
+                        </button>
+                        <button type="button" class="gripper-btn btn-grip-open" id="btnGripOpen" title="Ouvrir la pince en grand (50°)">
+                            <span>OUVRIR (50°)</span>
+                        </button>
+                        <button type="button" class="gripper-btn btn-step" id="btnGripDec" title="Ouvrir progressivement (-5°)">
+                            <span>- 5° (OUVRIR)</span>
+                        </button>
+                        <div class="gripper-slider-wrapper" title="Ajustement progressif continu (0° à 180°)">
+                            <input type="range" id="gripperSlider" min="0" max="180" value="90" step="1" class="hal-slider">
+                        </div>
+                        <button type="button" class="gripper-btn btn-step" id="btnGripInc" title="Fermer progressivement (+5°)">
+                            <span>+ 5° (FERMER)</span>
+                        </button>
+                        <button type="button" class="gripper-btn btn-step" id="btnGripCenter" title="Remettre la pince au centre neutre (90°)">
+                            <span>90° NEUTRE</span>
+                        </button>
+                        <button type="button" class="gripper-btn btn-step" id="btnGripSweep" title="Lancer un balayage automatique doux 0° - 180°">
+                            <span>🔄 BALAYAGE (0-180°)</span>
+                        </button>
+                        <button type="button" class="gripper-btn btn-grip-relax" id="btnGripRelax" title="Couper immédiatement le PWM (Roue libre / Anti-chauffe en cas de butée)">
+                            <span>⚡ RELAX (ROUE LIBRE)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Ligne de saisie de commande -->
+                <form id="commandForm" class="command-bar hal-command-bar">
+                    <div class="input-wrapper">
+                        <span class="prompt-symbol">HAL&gt;</span>
+                        <input type="text" id="commandInput"
+                            placeholder="Entrez un ordre de contrôle pour HAL 95 (ex: PING, STREAM,ON)..."
+                            autocomplete="off" spellcheck="false">
+                    </div>
+
+                    <div class="newline-selector" title="Terminaison de trame envoyée">
+                        <select id="newlineSelect" class="hal-select">
+                            <option value="\r\n">CR+LF (\r\n)</option>
+                            <option value="\n">LF (\n)</option>
+                            <option value="\r">CR (\r)</option>
+                            <option value="">Aucun</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" id="btnSend" class="btn btn-primary btn-send hal-btn-send">
+                        <span>TRANSMETTRE</span>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <line x1="22" y1="2" x2="11" y2="13" />
+                            <polygon points="22 2 15 22 11 13 2 9 22 2" />
+                        </svg>
+                    </button>
+                </form>
+            </section>
+
+            <!-- SECTION VISION / LENTILLE OPTIQUE DE HAL 9000 & PLAN 2D TACTIQUE -->
+            <section class="vision-panel glass-card hal-vision-frame" id="visionPanel">
+                <div class="panel-header hal-header-bar">
+                    <div class="panel-title panel-title-tabs">
+                        <button type="button" class="view-switch-btn active" id="tabViewVision" title="Vue Lentille Optique & Caméra">
+                            <span class="hal-lens-indicator"></span>
+                            <span>LENTILLE (HAL EYE)</span>
+                        </button>
+                        <button type="button" class="view-switch-btn" id="tabViewArena" title="Vue Plan 2D Tactique & Réflexion Autonome (2480x1220 mm)">
+                            <span class="arena-radar-indicator"></span>
+                            <span>PLAN 2D ARÈNE</span>
+                            <span class="arena-live-badge" id="arenaLiveBadge">10 Hz</span>
+                        </button>
+                    </div>
+
+                    <div class="vision-status">
+                        <!-- Mode Éco / Basse Puissance pour soulager le PC -->
+                        <button id="btnTogglePerfMode" class="btn btn-sm hal-btn-lens-control"
+                            title="Basculer entre Mode Normal et Mode Éco (réduit la charge CPU de 75% pour éviter les lags sur PC modeste)">
+                            <span id="labelPerfMode">⚡ ÉCO: OFF</span>
+                        </button>
+
+                        <!-- Rechargement forcé anti-blocage -->
+                        <button id="btnReloadStream" class="btn btn-icon hal-btn-lens-control hidden"
+                            title="Forcer la reconnexion du flux vidéo (Anti-Gel)">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"></polyline>
+                                <polyline points="1 20 1 14 7 14"></polyline>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+                            </svg>
+                        </button>
+
+                        <!-- Contrôles du flux actif (Flash LED & Déconnexion/Retour) -->
+                        <button id="btnToggleFlash" class="btn btn-icon hal-btn-lens-control hidden"
+                            title="Allumer/Éteindre le Flash LED de l'ESP32-CAM">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+                            </svg>
+                        </button>
+                        <button id="btnStopVision" class="btn btn-icon hal-btn-lens-control hidden"
+                            title="Déconnecter le flux vidéo et revenir au sélecteur">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                        <span class="live-pill hal-live-pill" id="visionLivePill"><span class="live-dot" id="visionLiveDot"></span> <span id="visionLiveText">SCAN ACTIF</span></span>
+                    </div>
+                </div>
+
+                <div class="vision-viewport hal-lens-viewport" id="viewportMainContainer">
+                    <!-- VUE 1 : LENTILLE OPTIQUE / VIDÉO -->
+                    <div class="view-pane" id="viewPaneVision">
+                        <!-- Flux vidéo : ESP32-CAM (MJPEG) ou Webcam locale -->
+                        <img id="mjpegFeed" class="vision-media hidden" alt="Flux optique HAL 95" crossOrigin="anonymous">
+                        <video id="videoFeed" autoplay playsinline muted class="vision-media hidden"></video>
+                        <canvas id="visionOverlay"></canvas>
+
+                        <!-- L'ŒIL ROUGE ICONIQUE DE HAL 9000 -->
+                        <div class="vision-placeholder hal-eye-lens" id="visionPlaceholder">
+                            <div class="hal-eye-assembly">
+                                <!-- Bague d'aluminium brossé extérieure -->
+                                <div class="hal-bezel-ring"></div>
+                                <!-- Lentille sphérique fumée -->
+                                <div class="hal-lens-glass">
+                                    <!-- Pupille rouge incandescente avec halo -->
+                                    <div class="hal-core-pupil">
+                                        <div class="hal-core-glint"></div>
+                                    </div>
+                                </div>
+                                <!-- Réticule et boussole de visée optique -->
+                                <div class="hal-reticle-crosshair"></div>
+                            </div>
+
+                            <h3>CAPTEUR VISUEL OPÉRATIONNEL</h3>
+                            <p>Interface optique prête pour l'asservissement du robot HAL 95. Sélectionnez votre capteur vidéo :</p>
+
+                            <div class="camera-actions-group">
+                                <button id="btnConnectEspCam" class="btn btn-primary btn-sm hal-btn-lens"
+                                    title="Se connecter au flux direct de l'ESP32-CAM (Point d'Accès Wi-Fi)">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <path d="M5 12.55a11 11 0 0 1 14.08 0"></path>
+                                        <path d="M1.42 9a16 16 0 0 1 21.16 0"></path>
+                                        <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+                                        <circle cx="12" cy="20" r="1"></circle>
+                                    </svg>
+                                    <span>Lier Caméra Robot (ESP32-CAM Wi-Fi)</span>
+                                </button>
+
+                                <button id="btnStartWebcam" class="btn btn-secondary btn-sm hal-btn-lens"
+                                    title="Utiliser la webcam de secours du PC">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                        stroke-width="2">
+                                        <circle cx="12" cy="12" r="10" />
+                                        <circle cx="12" cy="12" r="4" />
+                                    </svg>
+                                    <span>Webcam Locale PC</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Télémétrie overlay de HAL -->
+                        <div class="vision-telemetry hal-telemetry">
+                            <div class="telemetry-box">
+                                <span class="telem-label">ACQUISITION</span>
+                                <span class="telem-val" id="valFps">30.0 FPS</span>
+                            </div>
+                            <div class="telemetry-box">
+                                <span class="telem-label">LATENCE BUS</span>
+                                <span class="telem-val" id="valLatency">1.2 ms</span>
+                            </div>
+                            <div class="telemetry-box">
+                                <span class="telem-label">CIBLE SYSTÈME</span>
+                                <span class="telem-val highlight hal-target-text" id="valTarget">HAL-ROBOT READY</span>
+                            </div>
+                            <div class="telemetry-box" title="Télémètres ToF Gauche & Droit (mm)">
+                                <span class="telem-label">TOF (G / D)</span>
+                                <span class="telem-val" id="valTof">--- / ---</span>
+                            </div>
+                            <div class="telemetry-box" title="Capteur Central APDS-9960 (Proximité IR & Couleur) - Couvre l'angle mort ToF">
+                                <span class="telem-label">APDS CENTRE</span>
+                                <span class="telem-val highlight" id="valApds">P:0 | --</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- VUE 2 : PLAN 2D TACTIQUE DU TERRAIN AUTONOME (2480 x 1220 mm) -->
+                    <div class="view-pane hidden" id="viewPaneArena">
+                        <!-- Mini barre télémétrie plan 2D -->
+                        <div class="arena-hud-bar">
+                            <div class="arena-hud-box" title="Position et orientation estimées (Odométrie STM32 10 Hz)">
+                                <span class="a-label">POSE ESTIMÉE</span>
+                                <span class="a-val highlight" id="arenaPoseVal">X: 1240 Y: 610 θ: 0°</span>
+                            </div>
+                            <div class="arena-hud-box" title="Distance totale parcourue depuis le boot du STM32">
+                                <span class="a-label">ODOMÉTRIE</span>
+                                <div class="a-odo-group">
+                                    <span class="a-val" id="arenaOdoVal">0.00 m</span>
+                                    <button type="button" id="btnQueryOdo" class="btn-odo-query" title="Interroger le STM32 (DIST?)">?</button>
+                                </div>
+                            </div>
+                            <div class="arena-hud-box" title="Canettes déposées dans le peigne de livraison (X=2360..2430mm)">
+                                <span class="a-label">PEIGNE (LIVRÉES)</span>
+                                <span class="a-val highlight-green" id="arenaDeliveredVal">0 / 6</span>
+                            </div>
+                            <div class="arena-hud-box" title="Canettes pièges évitées (cercle de 180 mm de rayon)">
+                                <span class="a-label">PIÈGES (180mm)</span>
+                                <span class="a-val highlight-orange" id="arenaTrapsVal">0</span>
+                            </div>
+                            <div class="arena-hud-box" title="Obstacles / Canettes scannées ToF 360°">
+                                <span class="a-label">SCANS TOF</span>
+                                <span class="a-val" id="arenaObsVal">0</span>
+                            </div>
+                        </div>
+
+                        <!-- Zone du Canvas 2D Arène avec repères au millimètre -->
+                        <div class="arena-canvas-container" id="arenaCanvasContainer">
+                            <canvas id="arena2dCanvas"></canvas>
+
+                            <!-- Coordonnées instantanées du curseur -->
+                            <div class="arena-coords-badge" id="arenaCoordsBadge">X: 1240 mm | Y: 610 mm</div>
+
+                            <!-- Outils flottants sur la carte tactique -->
+                            <div class="arena-overlay-tools">
+                                <button type="button" class="a-tool-btn" id="btnArenaZoomIn" title="Agrandir (+)">+</button>
+                                <button type="button" class="a-tool-btn" id="btnArenaZoomOut" title="Réduire (-)">−</button>
+                                <button type="button" class="a-tool-btn" id="btnArenaCenter" title="Recentrer sur le robot / terrain">⌖</button>
+                                <button type="button" class="a-tool-btn" id="btnArenaClearTrail" title="Effacer l'historique du tracé">🧹</button>
+                                <button type="button" class="a-tool-btn active" id="btnArenaToggleSensors" title="Afficher/Masquer faisceaux ToF et zones de sécurité">⚡</button>
+                            </div>
+
+                            <!-- Modal / Bilan de fin de mission (MISSION_STATS) -->
+                            <div class="mission-stats-overlay hidden" id="missionStatsOverlay">
+                                <div class="mission-stats-box">
+                                    <div class="stats-title-row">
+                                        <span class="stats-trophy">🏆</span>
+                                        <h4>BILAN DE MISSION AUTONOME HAL 95</h4>
+                                        <button type="button" class="stats-close-btn" id="btnCloseMissionStats">&times;</button>
+                                    </div>
+                                    <div class="stats-cards-grid">
+                                        <div class="stats-metric-card">
+                                            <span class="m-label">CANETTES LIVRÉES</span>
+                                            <span class="m-val green" id="statCansCount">0</span>
+                                        </div>
+                                        <div class="stats-metric-card">
+                                            <span class="m-label">TEMPS ÉCOULÉ</span>
+                                            <span class="m-val" id="statTimeDuration">00:00</span>
+                                        </div>
+                                        <div class="stats-metric-card">
+                                            <span class="m-label">DISTANCE PARCOURUE</span>
+                                            <span class="m-val" id="statDistanceTotal">0.00 m</span>
+                                        </div>
+                                    </div>
+                                    <div class="stats-footer-note" id="statsFooterNote">Télémétrie finale certifiée par STM32.</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Commandes rapides sous le plan 2D -->
+                        <div class="arena-controls-bar">
+                            <div class="arena-target-selector">
+                                <span class="arena-ctrl-label">CIBLE COULEUR (STM32) :</span>
+                                <div class="arena-target-buttons">
+                                    <button type="button" class="btn-target-pill pill-red active" data-target="RED" title="Ramasser canette Rouge">🔴 ROUGE</button>
+                                    <button type="button" class="btn-target-pill pill-green" data-target="GREEN" title="Ramasser canette Verte">🟢 VERT</button>
+                                    <button type="button" class="btn-target-pill pill-blue" data-target="BLUE" title="Ramasser canette Bleue">🔵 BLEU</button>
+                                    <button type="button" class="btn-target-pill pill-all" data-target="ALL" title="Ramasser toutes les couleurs">🌈 TOUTES</button>
+                                    <button type="button" class="btn-target-pill pill-none" data-target="NONE" title="Aucune cible">⚪ AUCUNE</button>
+                                </div>
+                            </div>
+
+                            <div class="arena-mission-actions">
+                                <button type="button" class="btn btn-sm btn-auton-start" id="btnArenaStartAuton" title="Démarrer la mission autonome (MODE,AUTO)">
+                                    <span>▶ DÉPART AUTO</span>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-auton-stop" id="btnArenaStopAuton" title="Arrêt d'urgence moteurs (MOTOR,STOP)">
+                                    <span>⏹ ARRÊT</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="vision-controls hal-vision-footer">
+                    <!-- MATRICE DE TRI CHROMATIQUE : CANETTES 33 cL -->
+                    <div class="mission-matrix-card">
+                        <div class="matrix-header">
+                            <div class="matrix-title-group">
+                                <span class="matrix-icon">🎯</span>
+                                <span class="matrix-title">MISSION : TRI CHROMATIQUE CANETTES 33 cL</span>
+                            </div>
+                            <span class="matrix-badge" id="missionStatusBadge">CIBLE: ROUGE</span>
+                        </div>
+                        <div class="matrix-rows">
+                            <!-- Ligne Canette Rouge -->
+                            <div class="matrix-row" data-color="red">
+                                <div class="color-badge color-red">
+                                    <span class="color-dot dot-red"></span>
+                                    <span class="color-name">CANETTE ROUGE</span>
+                                </div>
+                                <div class="matrix-actions">
+                                    <button type="button" class="matrix-btn btn-collect active" data-color="red"
+                                        data-action="collect"
+                                        title="Cible prioritaire à saisir et déposer en zone">RAMASSER</button>
+                                    <button type="button" class="matrix-btn btn-avoid" data-color="red"
+                                        data-action="avoid" title="Canette piège à éviter / contourner">ÉVITER</button>
+                                    <button type="button" class="matrix-btn btn-ignore" data-color="red"
+                                        data-action="ignore" title="Canette neutre à ignorer">IGNORER</button>
+                                </div>
+                            </div>
+                            <!-- Ligne Canette Verte -->
+                            <div class="matrix-row" data-color="green">
+                                <div class="color-badge color-green">
+                                    <span class="color-dot dot-green"></span>
+                                    <span class="color-name">CANETTE VERTE</span>
+                                </div>
+                                <div class="matrix-actions">
+                                    <button type="button" class="matrix-btn btn-collect" data-color="green"
+                                        data-action="collect"
+                                        title="Cible prioritaire à saisir et déposer en zone">RAMASSER</button>
+                                    <button type="button" class="matrix-btn btn-avoid active" data-color="green"
+                                        data-action="avoid" title="Canette piège à éviter / contourner">ÉVITER</button>
+                                    <button type="button" class="matrix-btn btn-ignore" data-color="green"
+                                        data-action="ignore" title="Canette neutre à ignorer">IGNORER</button>
+                                </div>
+                            </div>
+                            <!-- Ligne Canette Bleue -->
+                            <div class="matrix-row" data-color="blue">
+                                <div class="color-badge color-blue">
+                                    <span class="color-dot dot-blue"></span>
+                                    <span class="color-name">CANETTE BLEUE</span>
+                                </div>
+                                <div class="matrix-actions">
+                                    <button type="button" class="matrix-btn btn-collect" data-color="blue"
+                                        data-action="collect"
+                                        title="Cible prioritaire à saisir et déposer en zone">RAMASSER</button>
+                                    <button type="button" class="matrix-btn btn-avoid" data-color="blue"
+                                        data-action="avoid" title="Canette piège à éviter / contourner">ÉVITER</button>
+                                    <button type="button" class="matrix-btn btn-ignore active" data-color="blue"
+                                        data-action="ignore" title="Canette neutre à ignorer">IGNORER</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CONTRÔLES D'ASSERVISSEMENT ET TRAQUE AUTOMATIQUE (ÉTAPE 2.2) -->
+                    <div class="asserv-action-bar">
+                        <button type="button" id="btnToggleAutoTrack" class="btn btn-autotrack"
+                            title="Engager/Stopper la traque automatique des canettes cibles vers le STM32">
+                            <span class="track-dot"></span>
+                            <span id="btnAutoTrackLabel">ENGAGER TRAQUE AUTO</span>
+                        </button>
+
+                        <button type="button" id="btnChangeMode" class="btn btn-secondary btn-sm hal-btn-lens"
+                            title="Changer de mode opératoire (Vision PC ou 100% Autonome) ou relancer une mission">
+                            <span>🔄 Relancer / Mode</span>
+                        </button>
+
+                        <div class="motor-throttle-display" title="Consignes différentielles moteurs (Roue G / Roue D)">
+                            <span class="throttle-label">MOT :</span>
+                            <span class="mot-val" id="motLeftVal">0%</span>
+                            <span class="throttle-sep">|</span>
+                            <span class="mot-val" id="motRightVal">0%</span>
+                        </div>
+
+                        <label class="switch-container switch-flash"
+                            title="Active la levée de doute automatique par flash LED si l'éclairage faiblit">
+                            <input type="checkbox" id="chkAutoFlash">
+                            <span class="switch-slider"></span>
+                            <span class="switch-text">Flash Auto</span>
+                        </label>
+                    </div>
+
+                    <div class="control-row">
+                        <label>Asservissement robotique STM32 :</label>
+                        <span class="toggle-status hal-status-ready" id="asservStatus">STANDBY (RÈGLES DÉFINIES)</span>
+                    </div>
+                    <div class="control-tags">
+                        <span class="tag hal-tag">HAL-CORE v2.0</span>
+                        <span class="tag hal-tag tag-interactive" id="tagKeyboardDrive"
+                            title="Pilotage direct au clavier : ZQSD ou Flèches directionnelles, Espace pour arrêt d'urgence">🎮
+                            CLAVIER (ZQSD)</span>
+                        <span class="tag hal-tag">NEURAL VISION</span>
+                        <span class="tag hal-tag" title="Détection canette ToF calibrée à 150 mm (15 cm) en mode autonome">ToF: 15cm</span>
+                        <span class="tag hal-tag tag-interactive" id="tagServoGrip"
+                            title="Contrôle pince : Cliquer pour basculer Ouvrir (50°) / Saisir (155°) - Raccourcis O / C">🦾 PINCE: 90°</span>
+                        <span class="tag hal-tag tag-brake" id="tagBrakeStatus"
+                            title="Statut freinage moteur (BRK:1 / BRK:0)">🛑 FREIN: OFF</span>
+                        <span class="tag hal-tag tag-chrono" id="tagMissionChrono"
+                            title="Chronomètre de mission renvoyé par le firmware STM32 (Bouton PA10 / Fin de mission)">⏱️ CHRONO: --:--</span>
+                    </div>
+
+                    <div class="led-control-bar">
+                        <div class="led-control-group">
+                            <span class="led-control-label">🎨 CHENILLARD :</span>
+                            <select id="selectChgColor" class="hal-select hal-select-sm" title="Couleur du chenillard de charge sur l'ESP32">
+                                <option value="AUTO">✨ Auto (SoC)</option>
+                                <option value="BLANC">⚪ Blanc</option>
+                                <option value="MARRON">🟤 Marron</option>
+                                <option value="VIOLET">🟣 Violet</option>
+                                <option value="CYAN">🩵 Cyan</option>
+                                <option value="ROSE">🩷 Rose</option>
+                                <option value="ORANGE">🟠 Orange</option>
+                                <option value="VERT">🟢 Vert</option>
+                                <option value="BLEU">🔵 Bleu</option>
+                                <option value="ROUGE">🔴 Rouge</option>
+                            </select>
+                        </div>
+
+                        <label class="switch-container switch-brake" title="Allume les 10 LEDs en rouge vif lors du freinage moteur">
+                            <input type="checkbox" id="chkBrakeLight" checked>
+                            <span class="switch-slider"></span>
+                            <span class="switch-text">🛑 Feu Stop</span>
+                        </label>
+                    </div>
+
+                    <div class="led-control-bar oled-control-bar">
+                        <div class="led-control-group">
+                            <span class="led-control-label">📺 OLED :</span>
+                            <select id="selectOledPage" class="hal-select hal-select-sm" title="Page et animation affichées sur l'écran SBC-OLED01 (STM32 I2C1)">
+                                <option value="AUTO">🔄 Page : Auto</option>
+                                <option value="TELEM">🔋 Page : Télémétrie</option>
+                                <option value="SENSORS">📏 Page : Capteurs ToF</option>
+                                <option value="EYE">👁️ Page : Œil</option>
+                                <option value="EYE:HAL">🔴 Animation : Œil HAL-9000</option>
+                                <option value="EYE:EYES">👀 Animation : Yeux dynamiques (Vg/Vd)</option>
+                            </select>
+                        </div>
+
+                        <div class="oled-msg-group">
+                            <input type="text" id="inputOledMsg" class="hal-input-sm" placeholder="Message OLED (max 32 car.)..." maxlength="32">
+                            <button type="button" id="btnOledMsg" class="macro-btn hal-btn-oled" title="Afficher ce texte pendant 4s sur l'écran OLED">OK</button>
+                        </div>
+
+                        <label class="switch-container switch-brake" title="Allumer / Éteindre l'écran SBC-OLED01">
+                            <input type="checkbox" id="chkOledPower" checked>
+                            <span class="switch-slider"></span>
+                            <span class="switch-text">Écran</span>
+                        </label>
+                    </div>
+                </div>
+            </section>
+
+            <!-- SECTION CONTRÔLES MOBILES 50/50 (TÉLÉPHONE) -->
+            <section class="mobile-controls-panel glass-card" id="mobileControlsPanel">
+                <!-- Mini bandeau télémétrie tactile -->
+                <div class="mobile-status-strip">
+                    <div class="mstat-item">
+                        <span class="mstat-label">BATTERIE</span>
+                        <span class="mstat-val" id="mstatBattery">--%</span>
+                    </div>
+                    <div class="mstat-item">
+                        <span class="mstat-label">TOF G/D</span>
+                        <span class="mstat-val" id="mstatTof">-- / --</span>
+                    </div>
+                    <div class="mstat-item">
+                        <span class="mstat-label">CANETTE</span>
+                        <span class="mstat-val" id="mstatCan">--</span>
+                    </div>
+                    <div class="mstat-item">
+                        <span class="mstat-label">PINCE</span>
+                        <span class="mstat-val" id="mstatGrip">90°</span>
+                    </div>
+                </div>
+
+                <!-- Pupitre de pilotage tactile : D-Pad à gauche / Pince & Actions à droite -->
+                <div class="mobile-deck-layout">
+                    <!-- D-PAD TACTILE 4 DIRECTIONS + STOP -->
+                    <div class="virtual-dpad" id="virtualDpad">
+                        <div class="dpad-row dpad-top">
+                            <button type="button" class="dpad-btn dpad-up" id="dpadUp" data-dir="up">
+                                <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><polygon points="12 4 4 16 20 16 12 4"/></svg>
+                                <span>AVANCE</span>
+                            </button>
+                        </div>
+                        <div class="dpad-row dpad-middle">
+                            <button type="button" class="dpad-btn dpad-left" id="dpadLeft" data-dir="left">
+                                <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><polygon points="4 12 16 4 16 20 4 12"/></svg>
+                                <span>GAUCHE</span>
+                            </button>
+                            <button type="button" class="dpad-btn dpad-stop" id="dpadStop" data-dir="stop">
+                                <span>STOP</span>
+                            </button>
+                            <button type="button" class="dpad-btn dpad-right" id="dpadRight" data-dir="right">
+                                <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><polygon points="20 12 8 4 8 20 20 12"/></svg>
+                                <span>DROITE</span>
+                            </button>
+                        </div>
+                        <div class="dpad-row dpad-bottom">
+                            <button type="button" class="dpad-btn dpad-down" id="dpadDown" data-dir="down">
+                                <svg viewBox="0 0 24 24" width="26" height="26" fill="currentColor"><polygon points="12 20 4 8 20 8 12 20"/></svg>
+                                <span>RECUL</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- ACTIONS TACTILES PINCE & SYSTÈME -->
+                    <div class="mobile-action-deck">
+                        <div class="mdeck-section-title">PINCE & CANETTES</div>
+                        <div class="mdeck-grid">
+                            <button type="button" class="mdeck-btn mdeck-grip-close" id="mbtnGripClose">
+                                <span class="mdeck-icon">🦾</span>
+                                <span class="mdeck-text">SAISIR (155°)</span>
+                            </button>
+                            <button type="button" class="mdeck-btn mdeck-grip-open" id="mbtnGripOpen">
+                                <span class="mdeck-icon">👐</span>
+                                <span class="mdeck-text">OUVRIR (50°)</span>
+                            </button>
+                            <button type="button" class="mdeck-btn mdeck-grip-relax" id="mbtnGripRelax">
+                                <span class="mdeck-icon">⚡</span>
+                                <span class="mdeck-text">RELAX</span>
+                            </button>
+                            <button type="button" class="mdeck-btn mdeck-grip-sweep" id="mbtnGripSweep">
+                                <span class="mdeck-icon">🔄</span>
+                                <span class="mdeck-text">SWEEP</span>
+                            </button>
+                        </div>
+
+                        <div class="mdeck-section-title">COMMANDES & SÉCURITÉ</div>
+                        <div class="mdeck-grid">
+                            <button type="button" class="mdeck-btn mdeck-estop" id="mbtnEstop">
+                                <span class="mdeck-icon">🛑</span>
+                                <span class="mdeck-text">E-STOP</span>
+                            </button>
+                            <button type="button" class="mdeck-btn mdeck-sound" id="mbtnStarWars">
+                                <span class="mdeck-icon">⭐</span>
+                                <span class="mdeck-text">STAR WARS</span>
+                            </button>
+                            <button type="button" class="mdeck-btn mdeck-sound" id="mbtnBeep">
+                                <span class="mdeck-icon">🔔</span>
+                                <span class="mdeck-text">BIP</span>
+                            </button>
+                            <button type="button" class="mdeck-btn mdeck-poweroff" id="mbtnPowerOff">
+                                <span class="mdeck-icon">⏻</span>
+                                <span class="mdeck-text">ÉTEINDRE</span>
+                            </button>
+                        </div>
+                        <div class="mdeck-section-title">DIAGNOSTIC MATÉRIEL</div>
+                        <div class="mdeck-grid">
+                            <button type="button" class="mdeck-btn mdeck-diag macro-btn" data-cmd="INFO,FG">
+                                <span class="mdeck-icon">⚡</span>
+                                <span class="mdeck-text">INFO FG</span>
+                            </button>
+                            <button type="button" class="mdeck-btn mdeck-diag macro-btn" data-cmd="INFO,CHG">
+                                <span class="mdeck-icon">🔌</span>
+                                <span class="mdeck-text">INFO CHG</span>
+                            </button>
+                            <button type="button" class="mdeck-btn mdeck-diag macro-btn" data-cmd="INFO,DRV">
+                                <span class="mdeck-icon">🚗</span>
+                                <span class="mdeck-text">INFO DRV</span>
+                            </button>
+                            <button type="button" class="mdeck-btn mdeck-diag macro-btn" data-cmd="INFO,ALL">
+                                <span class="mdeck-icon">📋</span>
+                                <span class="mdeck-text">INFO TOUT</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL DE SÉLECTION DU MODE OPÉRATOIRE (HAL 95 DIALOGUE DE CONNEXION) -->
+    <div id="modalModeSelect" class="hal-modal-overlay hidden">
+        <div class="hal-modal-box">
+            <div class="hal-modal-header">
+                <div class="hal-modal-eye">
+                    <div class="hal-core-pupil"></div>
+                </div>
+                <h3>LIAISON ÉTABLIE &bull; SÉLECTION DU MODE OPÉRATOIRE</h3>
+            </div>
+            <div class="hal-modal-body">
+                <p class="hal-modal-quote">"Good morning, Dave. All my circuits are functioning normally."</p>
+                <p class="hal-modal-text">
+                    La liaison avec le robot <strong>HAL 95</strong> est active. Souhaitez-vous activer la <strong>Vision par Ordinateur</strong> (Caméra PC & Traque HSV) pour guider la mission, ou laisser le robot en <strong>Mode 100% Autonome</strong> (Navigation capteurs STM32 ToF/Odométrie) ?
+                </p>
+                <div class="hal-modal-cards">
+                    <button type="button" id="btnSelectVisionMode" class="hal-mode-card card-vision">
+                        <div class="mode-icon">👁️</div>
+                        <div class="mode-info">
+                            <span class="mode-title">MODE VISION PAR ORDINATEUR</span>
+                            <span class="mode-desc">Caméra active &bull; Traque automatique HSV &bull; Scan 360° si cible non vue &bull; Pilotage hybride</span>
+                        </div>
+                    </button>
+                    <button type="button" id="btnSelectAutoMode" class="hal-mode-card card-auto">
+                        <div class="mode-icon">🤖</div>
+                        <div class="mode-info">
+                            <span class="mode-title">MODE 100% AUTONOME STM32</span>
+                            <span class="mode-desc">Firmware STM32 en autorité totale &bull; Scan ToF &bull; Odométrie &bull; Nettoyage Total &bull; Affichage passif</span>
+                        </div>
+                    </button>
+                    <button type="button" id="btnSelectManualMode" class="hal-mode-card card-manual">
+                        <div class="mode-icon">🎮</div>
+                        <div class="mode-info">
+                            <span class="mode-title">MODE PILOTAGE MANUEL</span>
+                            <span class="mode-desc">Contrôle direct ZQSD / Flèches / Tactile &bull; Pince &amp; LEDs à la carte &bull; Télémétrie active</span>
+                        </div>
+                    </button>
+                </div>
+            </div>
+            <div class="hal-modal-footer">
+                <span class="hal-modal-hint">Sélectionnez une option pour engager la mission HAL 95</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE CONFIRMATION EXTINCTION (SHIP MODE) -->
+    <div id="modalPowerOffConfirm" class="hal-modal-overlay hidden">
+        <div class="hal-modal-box">
+            <div class="hal-modal-header">
+                <div class="hal-modal-eye" style="border-color: #FF1E27; box-shadow: 0 0 15px rgba(255, 30, 39, 0.6);">
+                    <div class="hal-core-pupil" style="background: #FF1E27; box-shadow: 0 0 10px #FF1E27;"></div>
+                </div>
+                <h3>EXTINCTION DU ROBOT &bull; SHIP MODE</h3>
+            </div>
+            <div class="hal-modal-body">
+                <p class="hal-modal-quote" style="color: #FF6B6B;">"Are you sure, Dave? Disconnecting my primary power will place the power path in Ship Mode."</p>
+                <p class="hal-modal-text">
+                    Cette action ordonne au chargeur TI BQ25896 d'ouvrir son BATFET interne. La tension SYS tombera à 0 V et la carte mère s'éteindra complètement (consommation nulle : 0 mA).
+                </p>
+                <div class="hal-modal-cards" style="display: flex; gap: 12px; margin-top: 16px;">
+                    <button type="button" id="btnConfirmPowerOff" class="btn btn-primary" style="flex: 1; background: #FF1E27; border-color: #FF1E27; padding: 12px; font-weight: 700;">
+                        <span>⏻ CONFIRMER EXTINCTION</span>
+                    </button>
+                    <button type="button" id="btnCancelPowerOff" class="btn btn-secondary" style="flex: 1; padding: 12px;">
+                        <span>ANNULER</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=124"></script>
+</body>
+
+</html>
