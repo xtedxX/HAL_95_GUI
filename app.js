@@ -749,6 +749,7 @@ async function connectBLE() {
         `;
         logMessage('HAL-95', 'Good morning, Dave. I am completely operational and all my circuits are functioning perfectly. Liaison BLE établie avec l\'ESP32.', 'hal-quote');
         pulseHalEye();
+        startTimeSyncScheduler();
         showModeSelectModal();
 
     } catch (error) {
@@ -871,6 +872,7 @@ async function connectSerial() {
 
         // Boucle de lecture série
         readSerialLoop();
+        startTimeSyncScheduler();
         showModeSelectModal();
     } catch (err) {
         console.error('Erreur Serial:', err);
@@ -979,6 +981,59 @@ async function sendRawData(payload, logToConsole = false) {
         return false;
     }
 }
+
+let timeSyncTimeoutId = null;
+
+function formatTimeSyncCommand(date = new Date()) {
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mm = String(date.getMinutes()).padStart(2, '0');
+    const ss = String(date.getSeconds()).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    const mo = String(date.getMonth() + 1).padStart(2, '0');
+    const yyyy = date.getFullYear();
+    return `TIME,${hh},${mm},${ss},${dd},${mo},${yyyy}\r\n`;
+}
+
+async function sendTimeSync() {
+    if (!state.connected) return;
+    await sendRawData(formatTimeSyncCommand(new Date()), false);
+}
+
+function scheduleNextMinuteTimeSync() {
+    if (timeSyncTimeoutId !== null) {
+        clearTimeout(timeSyncTimeoutId);
+        timeSyncTimeoutId = null;
+    }
+    if (!state.connected) return;
+
+    const now = new Date();
+    const msIntoMinute = now.getSeconds() * 1000 + now.getMilliseconds();
+    const delayMs = Math.max(200, 60000 - msIntoMinute + 50);
+
+    timeSyncTimeoutId = setTimeout(async () => {
+        if (!state.connected) return;
+        await sendTimeSync();
+        scheduleNextMinuteTimeSync();
+    }, delayMs);
+}
+
+function startTimeSyncScheduler() {
+    sendTimeSync();
+    scheduleNextMinuteTimeSync();
+}
+
+function stopTimeSyncScheduler() {
+    if (timeSyncTimeoutId !== null) {
+        clearTimeout(timeSyncTimeoutId);
+        timeSyncTimeoutId = null;
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible' && state.connected) {
+        startTimeSyncScheduler();
+    }
+});
 
 // État des moteurs, limitation de bande passante et filtrage
 let lastMotorCommand = { left: 0, right: 0, time: 0 };
@@ -1123,6 +1178,7 @@ async function disconnect() {
 }
 
 function onDisconnected() {
+    stopTimeSyncScheduler();
     hideModeSelectModal();
     state.operatingMode = null;
     if (elements.modeIndicatorPill) {
