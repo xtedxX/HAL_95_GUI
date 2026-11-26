@@ -724,6 +724,12 @@
                                 <option value="ANIM:CYBER">⚡ Anim : Cyber Dual</option>
                             </select>
                         </div>
+                        <div class="led-control-group">
+                            <span class="led-control-label">🚀 PUISSANCE :</span>
+                            <input type="range" id="pcMotorPowerSlider" min="0" max="100" value="50" step="1" class="hal-slider motor-pwr-slider" title="Puissance des moteurs en pilotage manuel (0 à 100%)">
+                            <input type="number" id="pcMotorPowerInput" min="0" max="100" value="50" class="motor-pwr-num" title="Valeur numérique puissance moteurs (0 à 100%)">
+                            <span class="led-control-label">%</span>
+                        </div>
                     </div>
 
                     <div class="led-control-bar oled-control-bar">
@@ -781,6 +787,13 @@
                         <div class="mobile-oled-msg-box">
                             <input type="text" id="mInputOledMsg" class="mobile-oled-input" maxlength="32" placeholder="Msg OLED...">
                             <button type="button" id="mBtnOledMsg" class="mobile-oled-send" title="Envoyer un message sur l'écran OLED du robot">📺</button>
+                        </div>
+
+                        <div class="mobile-pwr-box" title="Puissance moteurs (0 à 100%)">
+                            <span class="mobile-pwr-label">🚀</span>
+                            <input type="range" id="mMotorPowerSlider" min="0" max="100" value="50" step="1" class="hal-slider mobile-pwr-slider">
+                            <input type="number" id="mMotorPowerInput" min="0" max="100" value="50" class="motor-pwr-num mobile-pwr-num">
+                            <span class="mobile-pwr-unit">%</span>
                         </div>
 
                         <!-- D-PAD TACTILE 4 DIRECTIONS + STOP -->
@@ -938,7 +951,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=135"></script>
+    <script src="app.js?v=136"></script>
 </body>
 
 </html>

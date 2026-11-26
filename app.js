@@ -1711,6 +1711,33 @@ function isDrivingKeyPressed() {
 
 let manualDriveTimer = null;
 
+let motorPowerPct = 50;
+const pcMotorPowerSlider = document.getElementById('pcMotorPowerSlider');
+const pcMotorPowerInput = document.getElementById('pcMotorPowerInput');
+const mMotorPowerSlider = document.getElementById('mMotorPowerSlider');
+const mMotorPowerInput = document.getElementById('mMotorPowerInput');
+
+function setMotorPowerPct(rawVal) {
+    let v = parseInt(rawVal, 10);
+    if (isNaN(v)) v = 0;
+    v = Math.max(0, Math.min(100, v));
+    motorPowerPct = v;
+    if (pcMotorPowerSlider) pcMotorPowerSlider.value = v;
+    if (pcMotorPowerInput) pcMotorPowerInput.value = v;
+    if (mMotorPowerSlider) mMotorPowerSlider.value = v;
+    if (mMotorPowerInput) mMotorPowerInput.value = v;
+    if (state.manualDriving) {
+        updateManualDrive();
+    }
+}
+
+[pcMotorPowerSlider, mMotorPowerSlider].forEach(el => {
+    if (el) el.addEventListener('input', (e) => setMotorPowerPct(e.target.value));
+});
+[pcMotorPowerInput, mMotorPowerInput].forEach(el => {
+    if (el) el.addEventListener('change', (e) => setMotorPowerPct(e.target.value));
+});
+
 function updateManualDrive() {
     const driveTag = document.getElementById('tagKeyboardDrive');
 
@@ -1729,35 +1756,31 @@ function updateManualDrive() {
         let Vg = 0;
         let Vd = 0;
         let actionLabel = '';
+        const pwr = motorPowerPct;
+        const halfPwr = Math.round(pwr * 0.5);
+        const turnPwr = Math.round(pwr * 0.7);
 
         if (driveKeys.up && !driveKeys.down) {
             if (driveKeys.left && !driveKeys.right) {
-                // Virage courbe avant-gauche
-                Vg = 25; Vd = 50; actionLabel = 'AVANT-GAUCHE';
+                Vg = halfPwr; Vd = pwr; actionLabel = 'AVANT-GAUCHE';
             } else if (driveKeys.right && !driveKeys.left) {
-                // Virage courbe avant-droit
-                Vg = 50; Vd = 25; actionLabel = 'AVANT-DROITE';
+                Vg = pwr; Vd = halfPwr; actionLabel = 'AVANT-DROITE';
             } else {
-                // Tout droit avant
-                Vg = 45; Vd = 45; actionLabel = 'AVANCE';
+                Vg = pwr; Vd = pwr; actionLabel = 'AVANCE';
             }
         } else if (driveKeys.down && !driveKeys.up) {
             if (driveKeys.left && !driveKeys.right) {
-                // Virage courbe recul-gauche
-                Vg = -20; Vd = -40; actionLabel = 'RECUL-GAUCHE';
+                Vg = -halfPwr; Vd = -pwr; actionLabel = 'RECUL-GAUCHE';
             } else if (driveKeys.right && !driveKeys.left) {
-                // Virage courbe recul-droit
-                Vg = -40; Vd = -20; actionLabel = 'RECUL-DROITE';
+                Vg = -pwr; Vd = -halfPwr; actionLabel = 'RECUL-DROITE';
             } else {
-                // Tout droit arrière
-                Vg = -35; Vd = -35; actionLabel = 'RECUL';
+                Vg = -pwr; Vd = -pwr; actionLabel = 'RECUL';
             }
         } else {
-            // Pivots purs sur place
             if (driveKeys.left && !driveKeys.right) {
-                Vg = -32; Vd = 32; actionLabel = 'PIVOT GAUCHE';
+                Vg = -turnPwr; Vd = turnPwr; actionLabel = 'PIVOT GAUCHE';
             } else if (driveKeys.right && !driveKeys.left) {
-                Vg = 32; Vd = -32; actionLabel = 'PIVOT DROIT';
+                Vg = turnPwr; Vd = -turnPwr; actionLabel = 'PIVOT DROIT';
             } else {
                 Vg = 0; Vd = 0; actionLabel = 'STOP';
             }
