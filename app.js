@@ -3418,27 +3418,20 @@ function applyTargetMaskUI(targetName, mask) {
         arenaState.selectedTargetColor = targetName;
         const btn = document.querySelector(`.btn-target-pill[data-target="${targetName}"]`);
         if (btn) btn.classList.add('active');
-        if (targetName === 'ALL') {
-            document.querySelector('.btn-target-pill[data-target="RED"]')?.classList.add('active');
-            document.querySelector('.btn-target-pill[data-target="GREEN"]')?.classList.add('active');
-            document.querySelector('.btn-target-pill[data-target="BLUE"]')?.classList.add('active');
-        }
     } else if (typeof mask === 'number') {
         const m = mask & 7;
         arenaState.targetMask = m;
         if (m === 0) {
             document.querySelector('.btn-target-pill[data-target="NONE"]')?.classList.add('active');
             arenaState.selectedTargetColor = 'NONE';
+        } else if (m === 7) {
+            document.querySelector('.btn-target-pill[data-target="ALL"]')?.classList.add('active');
+            arenaState.selectedTargetColor = 'ALL';
         } else {
             if (m & 1) document.querySelector('.btn-target-pill[data-target="RED"]')?.classList.add('active');
             if (m & 2) document.querySelector('.btn-target-pill[data-target="GREEN"]')?.classList.add('active');
             if (m & 4) document.querySelector('.btn-target-pill[data-target="BLUE"]')?.classList.add('active');
-            if (m === 7) {
-                document.querySelector('.btn-target-pill[data-target="ALL"]')?.classList.add('active');
-                arenaState.selectedTargetColor = 'ALL';
-            } else {
-                arenaState.selectedTargetColor = `MASK:${m}`;
-            }
+            arenaState.selectedTargetColor = `MASK:${m}`;
         }
     }
 }
