@@ -3188,6 +3188,7 @@ const arenaState = {
     activeTab: 'vision',     // 'vision' | 'arena'
     selectedTargetColor: 'RED',
     targetMask: 1,           // Bitmask: 1=RED, 2=GREEN, 4=BLUE
+    targetAllExplicit: false,
     _lastTransform: null
 };
 
@@ -3416,22 +3417,28 @@ function applyTargetMaskUI(targetName, mask) {
             arenaState.targetMask = nameToMask[targetName];
         }
         arenaState.selectedTargetColor = targetName;
-        const btn = document.querySelector(`.btn-target-pill[data-target="${targetName}"]`);
-        if (btn) btn.classList.add('active');
+        if (targetName === 'ALL' && !arenaState.targetAllExplicit) {
+            document.querySelector('.btn-target-pill[data-target="RED"]')?.classList.add('active');
+            document.querySelector('.btn-target-pill[data-target="GREEN"]')?.classList.add('active');
+            document.querySelector('.btn-target-pill[data-target="BLUE"]')?.classList.add('active');
+        } else {
+            const btn = document.querySelector(`.btn-target-pill[data-target="${targetName}"]`);
+            if (btn) btn.classList.add('active');
+        }
     } else if (typeof mask === 'number') {
         const m = mask & 7;
         arenaState.targetMask = m;
         if (m === 0) {
             document.querySelector('.btn-target-pill[data-target="NONE"]')?.classList.add('active');
             arenaState.selectedTargetColor = 'NONE';
-        } else if (m === 7) {
+        } else if (m === 7 && arenaState.targetAllExplicit) {
             document.querySelector('.btn-target-pill[data-target="ALL"]')?.classList.add('active');
             arenaState.selectedTargetColor = 'ALL';
         } else {
             if (m & 1) document.querySelector('.btn-target-pill[data-target="RED"]')?.classList.add('active');
             if (m & 2) document.querySelector('.btn-target-pill[data-target="GREEN"]')?.classList.add('active');
             if (m & 4) document.querySelector('.btn-target-pill[data-target="BLUE"]')?.classList.add('active');
-            arenaState.selectedTargetColor = `MASK:${m}`;
+            arenaState.selectedTargetColor = (m === 7) ? 'ALL' : `MASK:${m}`;
         }
     }
 }
@@ -3857,10 +3864,13 @@ document.querySelectorAll('.btn-target-pill').forEach(btn => {
         let nextMask = arenaState.targetMask & 7;
 
         if (target === 'ALL') {
+            arenaState.targetAllExplicit = true;
             nextMask = 7;
         } else if (target === 'NONE') {
+            arenaState.targetAllExplicit = false;
             nextMask = 0;
         } else if (target in bitMap) {
+            arenaState.targetAllExplicit = false;
             nextMask ^= bitMap[target];
         }
 
