@@ -89,6 +89,7 @@ const elements = {
     tagBrakeStatus: document.getElementById('tagBrakeStatus'),
     tagMissionChrono: document.getElementById('tagMissionChrono'),
     selectChgColor: document.getElementById('selectChgColor'),
+    selectChgAnim: document.getElementById('selectChgAnim'),
     chkBrakeLight: document.getElementById('chkBrakeLight'),
     selectOledPage: document.getElementById('selectOledPage'),
     inputOledMsg: document.getElementById('inputOledMsg'),
@@ -1542,7 +1543,14 @@ if (elements.selectChgColor) {
     elements.selectChgColor.addEventListener('change', async (e) => {
         const color = e.target.value;
         await sendCommand(`CHG_COLOR:${color}`);
-        logMessage('SYS', `Couleur du chenillard de charge réglée sur : ${color}`);
+        logMessage('SYS', `Couleur de l'animation de charge réglée sur : ${color}`);
+    });
+}
+if (elements.selectChgAnim) {
+    elements.selectChgAnim.addEventListener('change', async (e) => {
+        const anim = e.target.value;
+        await sendCommand(`CHG_ANIM:${anim}`);
+        logMessage('SYS', `Animation de charge réglée sur : ${anim}`);
     });
 }
 

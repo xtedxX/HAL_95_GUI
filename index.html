@@ -642,8 +642,8 @@
 
                     <div class="led-control-bar">
                         <div class="led-control-group">
-                            <span class="led-control-label">🎨 CHENILLARD :</span>
-                            <select id="selectChgColor" class="hal-select hal-select-sm" title="Couleur du chenillard de charge sur l'ESP32">
+                            <span class="led-control-label">🎨 CHARGE :</span>
+                            <select id="selectChgColor" class="hal-select hal-select-sm" title="Couleur de l'animation de charge sur l'ESP32">
                                 <option value="AUTO">✨ Auto (SoC)</option>
                                 <option value="BLANC">⚪ Blanc</option>
                                 <option value="MARRON">🟤 Marron</option>
@@ -654,6 +654,10 @@
                                 <option value="VERT">🟢 Vert</option>
                                 <option value="BLEU">🔵 Bleu</option>
                                 <option value="ROUGE">🔴 Rouge</option>
+                            </select>
+                            <select id="selectChgAnim" class="hal-select hal-select-sm" title="Style d'animation de charge sur l'ESP32">
+                                <option value="BLINK" selected>⚡ Palier clignotant</option>
+                                <option value="CHENILLARD">🌊 Chenillard</option>
                             </select>
                         </div>
 
@@ -880,7 +884,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=125"></script>
+    <script src="app.js?v=126"></script>
 </body>
 
 </html>
