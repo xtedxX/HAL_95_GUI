@@ -2215,8 +2215,17 @@ body {
 
     .serial-baud-wrapper,
     #btnConnectSerial,
-    #btnToggleVision {
+    #btnToggleVision,
+    #btnToggleMobileView {
         display: none !important;
+    }
+
+    .mobile-ring-select {
+        display: inline-block !important;
+        flex: 1 1 auto;
+        min-width: 140px;
+        height: 32px;
+        font-size: 11px;
     }
 
     .mode-indicator-pill {
@@ -3099,6 +3108,10 @@ body.mobile-view-active .mobile-controls-panel {
     filter: grayscale(85%);
     cursor: pointer;
     transition: all 0.2s ease;
+}
+
+.mobile-ring-select {
+    display: none;
 }
 
 .mdiag-pill.fault,

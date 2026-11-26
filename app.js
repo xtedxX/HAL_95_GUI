@@ -129,6 +129,7 @@ const elements = {
     btnChangeMode: document.getElementById('btnChangeMode'),
     modeIndicatorPill: document.getElementById('modeIndicatorPill'),
     btnToggleMobileView: document.getElementById('btnToggleMobileView'),
+    selectMobileRingColor: document.getElementById('selectMobileRingColor'),
     modalPowerOffConfirm: document.getElementById('modalPowerOffConfirm'),
     btnConfirmPowerOff: document.getElementById('btnConfirmPowerOff'),
     btnCancelPowerOff: document.getElementById('btnCancelPowerOff'),
@@ -1591,6 +1592,13 @@ if (elements.selectChgAnim) {
         const anim = e.target.value;
         await sendCommand(`CHG_ANIM:${anim}`);
         logMessage('SYS', `Animation de charge réglée sur : ${anim}`);
+    });
+}
+if (elements.selectMobileRingColor) {
+    elements.selectMobileRingColor.addEventListener('change', async (e) => {
+        const color = e.target.value;
+        await sendCommand(`CMD,COLOR,${color}`);
+        logMessage('SYS', `Anneau NeoPixel STM32 réglé sur : ${color}`);
     });
 }
 
