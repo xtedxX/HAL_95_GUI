@@ -1711,7 +1711,7 @@ function isDrivingKeyPressed() {
 
 let manualDriveTimer = null;
 
-let motorPowerPct = 50;
+let motorPowerPct = 100;
 const pcMotorPowerSlider = document.getElementById('pcMotorPowerSlider');
 const pcMotorPowerInput = document.getElementById('pcMotorPowerInput');
 const mMotorPowerSlider = document.getElementById('mMotorPowerSlider');
