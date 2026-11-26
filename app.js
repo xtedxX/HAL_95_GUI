@@ -3170,6 +3170,7 @@ const arenaState = {
     pose: { x: 72, y: 510, theta: 0 },
     odometryDistMm: 0,
     trail: [],               // [{x, y, theta, t}]
+    trailClearedAt: null,
     maxTrailPoints: 600,
 
     // Cibles et obstacles répertoriés
@@ -3221,8 +3222,23 @@ function updateRobotPose(x, y, theta) {
     arenaState.pose.theta = theta;
 
     const now = Date.now();
+    if (arenaState.trailClearedAt) {
+        if (Math.hypot(arenaState.trailClearedAt.x - x, arenaState.trailClearedAt.y - y) <= 15) {
+            if (elements.arenaPoseVal) {
+                elements.arenaPoseVal.textContent = `X: ${x} Y: ${y} θ: ${theta}°`;
+            }
+            if (arenaState.activeTab === 'arena') {
+                drawArena();
+            }
+            return;
+        }
+        arenaState.trailClearedAt = null;
+    }
+
     const lastPt = arenaState.trail[arenaState.trail.length - 1];
-    if (!lastPt || Math.hypot(lastPt.x - x, lastPt.y - y) > 12 || Math.abs(lastPt.theta - theta) > 4) {
+    if (!lastPt || Math.hypot(lastPt.x - x, lastPt.y - y) > 300) {
+        arenaState.trail = [{ x, y, theta, t: now }];
+    } else if (Math.hypot(lastPt.x - x, lastPt.y - y) > 12 || Math.abs(lastPt.theta - theta) > 4) {
         arenaState.trail.push({ x, y, theta, t: now });
         if (arenaState.trail.length > arenaState.maxTrailPoints) {
             arenaState.trail.shift();
@@ -3799,6 +3815,7 @@ if (elements.btnArenaCenter) {
 if (elements.btnArenaClearTrail) {
     elements.btnArenaClearTrail.addEventListener('click', () => {
         arenaState.trail = [];
+        arenaState.trailClearedAt = { x: arenaState.pose.x, y: arenaState.pose.y };
         arenaState.obstacles = [];
         arenaState.traps = [];
         arenaState.grippedTargets = [];
