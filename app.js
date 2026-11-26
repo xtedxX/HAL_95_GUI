@@ -3378,6 +3378,18 @@ function parseArenaTelemetry(line) {
         return true;
     }
 
+    // 1a. FAULT,MASK,<bitmask> (émis automatiquement à 1 Hz par la STM32 tant qu'un défaut est actif)
+    const faultMaskMatch = trimmed.match(/^FAULT,\s*MASK,\s*(\d+)/i);
+    if (faultMaskMatch) {
+        const fm = parseInt(faultMaskMatch[1], 10);
+        setMobileDiagFault('mDiagFg',  (fm & 1) !== 0);
+        setMobileDiagFault('mDiagChg', (fm & 2) !== 0);
+        setMobileDiagFault('mDiagDrv', (fm & 4) !== 0);
+        setMobileDiagFault('mDiagTof', (fm & 8) !== 0);
+        setMobileDiagFault('mDiagCol', (fm & 16) !== 0);
+        return true;
+    }
+
     // 1b. FIELD,<L_mm>,<W_mm>
     const fieldMatch = trimmed.match(/^FIELD,\s*(\d+),\s*(\d+)/i);
     if (fieldMatch) {
