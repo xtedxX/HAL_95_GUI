@@ -2216,7 +2216,8 @@ body {
     .serial-baud-wrapper,
     #btnConnectSerial,
     #btnToggleVision,
-    #btnToggleMobileView {
+    #btnToggleMobileView,
+    #btnStartWebcam {
         display: none !important;
     }
 
@@ -3112,6 +3113,51 @@ body.mobile-view-active .mobile-controls-panel {
 
 .mobile-ring-select {
     display: none;
+}
+
+.mobile-left-col {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.mobile-oled-msg-box {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: 100%;
+}
+
+.mobile-oled-input {
+    flex: 1;
+    min-width: 0;
+    height: 32px;
+    padding: 0 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    background: rgba(10, 14, 20, 0.85);
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+}
+
+.mobile-oled-input:focus {
+    outline: none;
+    border-color: #00F0FF;
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.35);
+}
+
+.mobile-oled-send {
+    height: 32px;
+    min-width: 36px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 240, 255, 0.45);
+    background: rgba(0, 240, 255, 0.14);
+    color: #fff;
+    font-size: 15px;
+    cursor: pointer;
 }
 
 .mdiag-pill.fault,

@@ -1602,6 +1602,29 @@ if (elements.selectMobileRingColor) {
     });
 }
 
+const mInputOledMsgEl = document.getElementById('mInputOledMsg');
+const mBtnOledMsgEl = document.getElementById('mBtnOledMsg');
+async function sendMobileOledMsg() {
+    if (!mInputOledMsgEl) return;
+    const msg = mInputOledMsgEl.value.trim();
+    if (!msg) return;
+    await sendCommand(`OLED:MSG:${msg}`);
+    mInputOledMsgEl.value = '';
+    mInputOledMsgEl.blur();
+    logMessage('TX', `OLED:MSG:${msg}`);
+}
+if (mBtnOledMsgEl) {
+    mBtnOledMsgEl.addEventListener('click', sendMobileOledMsg);
+}
+if (mInputOledMsgEl) {
+    mInputOledMsgEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            sendMobileOledMsg();
+        }
+    });
+}
+
 if (elements.chkBrakeLight) {
     elements.chkBrakeLight.addEventListener('change', async (e) => {
         const enabled = e.target.checked ? 1 : 0;
