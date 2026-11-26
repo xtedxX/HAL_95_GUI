@@ -2269,16 +2269,75 @@ body {
         padding: 4px 6px !important;
         margin-bottom: 4px !important;
         min-height: 0 !important;
+        flex-shrink: 0 !important;
         justify-content: center !important;
+        overflow: hidden;
     }
 
     .vision-panel .panel-header .vision-status {
         display: none !important;
     }
 
+    .vision-panel .panel-header .panel-title-tabs,
     .vision-panel .panel-header .view-switch-tabs {
         width: 100%;
         justify-content: center;
+        gap: 6px;
+        flex-wrap: nowrap;
+    }
+
+    .vision-panel .panel-header .view-switch-btn {
+        flex: 1 1 0;
+        justify-content: center;
+        padding: 4px 6px;
+        font-size: 0.64rem;
+        gap: 4px;
+        line-height: 1.15;
+        min-width: 0;
+    }
+
+    .vision-panel .panel-header .arena-live-badge {
+        font-size: 0.55rem;
+        padding: 1px 4px;
+    }
+
+    .vision-telemetry.hal-telemetry {
+        display: none !important;
+    }
+
+    #viewPaneArena {
+        height: 100%;
+        min-height: 0;
+        overflow: hidden;
+    }
+
+    .arena-hud-bar {
+        display: none !important;
+    }
+
+    .arena-canvas-container {
+        flex: 1 1 auto !important;
+        min-height: 0 !important;
+        height: 100% !important;
+    }
+
+    .arena-overlay-tools {
+        top: 6px;
+        right: 6px;
+        gap: 4px;
+    }
+
+    .a-tool-btn {
+        width: 25px;
+        height: 25px;
+        font-size: 0.78rem;
+    }
+
+    .arena-coords-badge {
+        bottom: 4px;
+        left: 6px;
+        font-size: 0.6rem;
+        padding: 2px 6px;
     }
 
     .vision-panel .hal-vision-footer {
@@ -2447,16 +2506,75 @@ body.mobile-view-active .vision-panel .panel-header {
     padding: 4px 6px !important;
     margin-bottom: 4px !important;
     min-height: 0 !important;
+    flex-shrink: 0 !important;
     justify-content: center !important;
+    overflow: hidden;
 }
 
 body.mobile-view-active .vision-panel .panel-header .vision-status {
     display: none !important;
 }
 
+body.mobile-view-active .vision-panel .panel-header .panel-title-tabs,
 body.mobile-view-active .vision-panel .panel-header .view-switch-tabs {
     width: 100%;
     justify-content: center;
+    gap: 6px;
+    flex-wrap: nowrap;
+}
+
+body.mobile-view-active .vision-panel .panel-header .view-switch-btn {
+    flex: 1 1 0;
+    justify-content: center;
+    padding: 4px 6px;
+    font-size: 0.64rem;
+    gap: 4px;
+    line-height: 1.15;
+    min-width: 0;
+}
+
+body.mobile-view-active .vision-panel .panel-header .arena-live-badge {
+    font-size: 0.55rem;
+    padding: 1px 4px;
+}
+
+body.mobile-view-active .vision-telemetry.hal-telemetry {
+    display: none !important;
+}
+
+body.mobile-view-active #viewPaneArena {
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+}
+
+body.mobile-view-active .arena-hud-bar {
+    display: none !important;
+}
+
+body.mobile-view-active .arena-canvas-container {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    height: 100% !important;
+}
+
+body.mobile-view-active .arena-overlay-tools {
+    top: 6px;
+    right: 6px;
+    gap: 4px;
+}
+
+body.mobile-view-active .a-tool-btn {
+    width: 25px;
+    height: 25px;
+    font-size: 0.78rem;
+}
+
+body.mobile-view-active .arena-coords-badge {
+    bottom: 4px;
+    left: 6px;
+    font-size: 0.6rem;
+    padding: 2px 6px;
 }
 
 body.mobile-view-active .vision-panel .hal-vision-footer {

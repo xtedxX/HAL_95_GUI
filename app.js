@@ -3356,10 +3356,19 @@ function switchMainView(tabName) {
         if (elements.tabViewVision) elements.tabViewVision.classList.remove('active');
         if (elements.viewPaneArena) elements.viewPaneArena.classList.remove('hidden');
         if (elements.viewPaneVision) elements.viewPaneVision.classList.add('hidden');
+        if (document.body.classList.contains('mobile-view-active') || window.innerWidth <= 900) {
+            arenaState.zoom = 1.0;
+            arenaState.panX = 0;
+            arenaState.panY = 0;
+        }
         requestAnimationFrame(() => {
             resizeArenaCanvas();
             drawArena();
         });
+        setTimeout(() => {
+            resizeArenaCanvas();
+            drawArena();
+        }, 60);
     } else {
         if (elements.tabViewVision) elements.tabViewVision.classList.add('active');
         if (elements.tabViewArena) elements.tabViewArena.classList.remove('active');
