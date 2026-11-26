@@ -3187,6 +3187,7 @@ const arenaState = {
     showSensors: true,
     activeTab: 'vision',     // 'vision' | 'arena'
     selectedTargetColor: 'RED',
+    targetMask: 1,           // Bitmask: 1=RED, 2=GREEN, 4=BLUE
     _lastTransform: null
 };
 
@@ -3410,23 +3411,34 @@ function applyTargetMaskUI(targetName, mask) {
     if (!pills.length) return;
     pills.forEach(b => b.classList.remove('active'));
     if (targetName) {
+        const nameToMask = { RED: 1, GREEN: 2, BLUE: 4, ALL: 7, NONE: 0 };
+        if (targetName in nameToMask) {
+            arenaState.targetMask = nameToMask[targetName];
+        }
         arenaState.selectedTargetColor = targetName;
         const btn = document.querySelector(`.btn-target-pill[data-target="${targetName}"]`);
         if (btn) btn.classList.add('active');
+        if (targetName === 'ALL') {
+            document.querySelector('.btn-target-pill[data-target="RED"]')?.classList.add('active');
+            document.querySelector('.btn-target-pill[data-target="GREEN"]')?.classList.add('active');
+            document.querySelector('.btn-target-pill[data-target="BLUE"]')?.classList.add('active');
+        }
     } else if (typeof mask === 'number') {
-        if (mask === 0) {
-            const btn = document.querySelector('.btn-target-pill[data-target="NONE"]');
-            if (btn) btn.classList.add('active');
+        const m = mask & 7;
+        arenaState.targetMask = m;
+        if (m === 0) {
+            document.querySelector('.btn-target-pill[data-target="NONE"]')?.classList.add('active');
             arenaState.selectedTargetColor = 'NONE';
-        } else if ((mask & 7) === 7) {
-            const btn = document.querySelector('.btn-target-pill[data-target="ALL"]');
-            if (btn) btn.classList.add('active');
-            arenaState.selectedTargetColor = 'ALL';
         } else {
-            if (mask & 1) document.querySelector('.btn-target-pill[data-target="RED"]')?.classList.add('active');
-            if (mask & 2) document.querySelector('.btn-target-pill[data-target="GREEN"]')?.classList.add('active');
-            if (mask & 4) document.querySelector('.btn-target-pill[data-target="BLUE"]')?.classList.add('active');
-            arenaState.selectedTargetColor = `MASK:${mask}`;
+            if (m & 1) document.querySelector('.btn-target-pill[data-target="RED"]')?.classList.add('active');
+            if (m & 2) document.querySelector('.btn-target-pill[data-target="GREEN"]')?.classList.add('active');
+            if (m & 4) document.querySelector('.btn-target-pill[data-target="BLUE"]')?.classList.add('active');
+            if (m === 7) {
+                document.querySelector('.btn-target-pill[data-target="ALL"]')?.classList.add('active');
+                arenaState.selectedTargetColor = 'ALL';
+            } else {
+                arenaState.selectedTargetColor = `MASK:${m}`;
+            }
         }
     }
 }
@@ -3844,15 +3856,33 @@ if (elements.btnQueryOdo) {
     });
 }
 
-// Sélecteur de cibles de couleur
+// Sélecteur de cibles de couleur (multi-sélection par bitmask)
 document.querySelectorAll('.btn-target-pill').forEach(btn => {
     btn.addEventListener('click', () => {
-        document.querySelectorAll('.btn-target-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
         const target = btn.dataset.target || 'RED';
-        arenaState.selectedTargetColor = target;
-        sendCommand(`TARGET,${target}`);
-        logMessage('MISSION', `🎯 Consigne cible STM32 mise à jour : TARGET,${target}`);
+        const bitMap = { RED: 1, GREEN: 2, BLUE: 4 };
+        let nextMask = arenaState.targetMask & 7;
+
+        if (target === 'ALL') {
+            nextMask = 7;
+        } else if (target === 'NONE') {
+            nextMask = 0;
+        } else if (target in bitMap) {
+            nextMask ^= bitMap[target];
+        }
+
+        applyTargetMaskUI(null, nextMask);
+
+        const maskToCmd = {
+            0: 'TARGET,NONE',
+            1: 'TARGET,RED',
+            2: 'TARGET,GREEN',
+            4: 'TARGET,BLUE',
+            7: 'TARGET,ALL'
+        };
+        const cmd = maskToCmd[nextMask] || `TARGET,MASK,${nextMask}`;
+        sendCommand(cmd);
+        logMessage('MISSION', `🎯 Consigne cible STM32 mise à jour : ${cmd}`);
     });
 });
 
