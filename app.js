@@ -3122,32 +3122,72 @@ if (elements.btnToggleMobileView) {
     });
 }
 
-// 3. D-Pad Tactile Virtuel avec Dead-Man Switch
+// 3. D-Pad Tactile Virtuel avec Dead-Man Switch + garde anti-swipe (110 ms / 10 px)
 function setupDpadButton(btn, dir) {
     if (!btn) return;
 
+    let holdTimer = null;
+    let isPressed = false;
+    let startX = 0;
+    let startY = 0;
+    let activePointerId = null;
+
+    const cancelHold = () => {
+        if (holdTimer !== null) {
+            clearTimeout(holdTimer);
+            holdTimer = null;
+        }
+    };
+
     const startAction = (e) => {
-        e.preventDefault();
-        btn.classList.add('active');
         if (dir === 'stop') {
+            e.preventDefault();
+            btn.classList.add('active');
             driveKeys.up = driveKeys.down = driveKeys.left = driveKeys.right = false;
             stopMotorsEmergency();
-        } else {
+            return;
+        }
+
+        cancelHold();
+        isPressed = false;
+        activePointerId = e.pointerId;
+        startX = e.clientX;
+        startY = e.clientY;
+
+        holdTimer = setTimeout(() => {
+            holdTimer = null;
+            isPressed = true;
+            btn.classList.add('active');
             driveKeys[dir] = true;
             updateManualDrive();
+        }, 110);
+    };
+
+    const moveAction = (e) => {
+        if (e.pointerId !== activePointerId) return;
+        if (!isPressed && holdTimer !== null) {
+            if (Math.hypot(e.clientX - startX, e.clientY - startY) > 10) {
+                cancelHold();
+                activePointerId = null;
+            }
         }
     };
 
     const stopAction = (e) => {
-        e.preventDefault();
+        if (activePointerId !== null && e.pointerId !== undefined && e.pointerId !== activePointerId) return;
+        cancelHold();
+        activePointerId = null;
         btn.classList.remove('active');
-        if (dir !== 'stop') {
+        if (dir !== 'stop' && isPressed) {
+            isPressed = false;
             driveKeys[dir] = false;
             updateManualDrive();
         }
+        isPressed = false;
     };
 
     btn.addEventListener('pointerdown', startAction);
+    btn.addEventListener('pointermove', moveAction);
     btn.addEventListener('pointerup', stopAction);
     btn.addEventListener('pointercancel', stopAction);
     btn.addEventListener('pointerleave', stopAction);
