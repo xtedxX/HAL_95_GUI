@@ -322,6 +322,7 @@ if (elements.batteryWidget) {
 const sensorState = {
     distRight: 9999,      // Distance ToF Droit (mm)
     distLeft: 9999,       // Distance ToF Gauche (mm)
+    distCenter: 9999,     // Distance ToF Central (mm)
     proximity: 0,         // Proximité IR APDS-9960 (0..255) au centre
     colorName: 'INCONNU', // Couleur lue par l'APDS-9960 ("ROUGE", "VERT", "BLEU", etc.)
     currentMa: 0,         // Courant instantané (mA) lu par le BQ27220
@@ -333,13 +334,15 @@ const sensorState = {
 function updateSensorTelemetryUI() {
     if (elements.valTof) {
         const dL = sensorState.distLeft < 8000 ? `${sensorState.distLeft}` : '---';
+        const dC = sensorState.distCenter < 8000 ? `${sensorState.distCenter}` : '---';
         const dR = sensorState.distRight < 8000 ? `${sensorState.distRight}` : '---';
-        elements.valTof.textContent = `${dL} / ${dR} mm`;
+        elements.valTof.textContent = `${dL} / ${dC} / ${dR} mm`;
     }
     if (elements.mstatTof) {
         const dL = sensorState.distLeft < 8000 ? `${sensorState.distLeft}` : '--';
+        const dC = sensorState.distCenter < 8000 ? `${sensorState.distCenter}` : '--';
         const dR = sensorState.distRight < 8000 ? `${sensorState.distRight}` : '--';
-        elements.mstatTof.textContent = `${dL} / ${dR} mm`;
+        elements.mstatTof.textContent = `${dL}/${dC}/${dR}`;
     }
     if (elements.mstatCan) {
         const colDisplay = sensorState.colorName !== 'INCONNU' ? sensorState.colorName : '--';
@@ -419,11 +422,13 @@ function handleIncomingInfoFrame(line) {
     // 4. INFO,TOF (Capteurs ToF VL53L0X)
     if (line.startsWith('INFO,TOF')) {
         const lMm = parseInt(line.match(/L_MM:(\d+)/i)?.[1] ?? '0', 10);
+        const cMm = parseInt(line.match(/C_MM:(\d+)/i)?.[1] ?? '0', 10);
         const rMm = parseInt(line.match(/R_MM:(\d+)/i)?.[1] ?? '0', 10);
         const lRdy = line.match(/L_RDY:(\d+)/i)?.[1] === '1';
+        const cRdy = line.match(/C_RDY:(\d+)/i)?.[1] === '1';
         const rRdy = line.match(/R_RDY:(\d+)/i)?.[1] === '1';
 
-        const diagMsg = `📏 [TÉLÉMÈTRES ToF] ToF Gauche: ${lMm} mm (${lRdy ? 'OK' : 'ERR'}) | ToF Droit: ${rMm} mm (${rRdy ? 'OK' : 'ERR'})`;
+        const diagMsg = `📏 [TÉLÉMÈTRES ToF] Gauche: ${lMm} mm (${lRdy ? 'OK' : 'ERR'}) | Centre: ${cMm} mm (${cRdy ? 'OK' : 'ERR'}) | Droit: ${rMm} mm (${rRdy ? 'OK' : 'ERR'})`;
         logMessage('DIAG', diagMsg, 'diag-msg');
         return true;
     }
@@ -497,11 +502,15 @@ function processIncomingSensorTelemetry(text) {
     if (sensMatch) {
         sensorState.distRight = parseInt(sensMatch[1], 10);
         sensorState.distLeft = parseInt(sensMatch[2], 10);
+        const centerMatch = text.match(/,M:(\d+)/i);
+        if (centerMatch) {
+            sensorState.distCenter = parseInt(centerMatch[1], 10);
+        }
         sensorState.proximity = parseInt(sensMatch[3], 10);
         sensorState.colorName = sensMatch[4].trim().toUpperCase();
         sensorState.lastUpdate = Date.now();
 
-        const minTof = Math.min(sensorState.distLeft, sensorState.distRight);
+        const minTof = Math.min(sensorState.distLeft, sensorState.distCenter, sensorState.distRight);
         // Angle mort central : les ToF sont inclinés à 20° vers l'extérieur (cône aveugle central de 15°).
         // Ils ne voient donc pas la canette droite devant, mais le capteur APDS-9960 au centre la détecte (P >= 10) !
         sensorState.inDeadZone = (sensorState.proximity >= 10 && minTof > 130);
@@ -3734,6 +3743,12 @@ function drawArena() {
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(tofRange * Math.cos(rightAng), -tofRange * Math.sin(rightAng));
+        ctx.stroke();
+
+        // Faisceau ToF central (0°)
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(tofRange, 0);
         ctx.stroke();
 
         ctx.fillStyle = 'rgba(0, 240, 255, 0.1)';
