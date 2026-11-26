@@ -3350,6 +3350,9 @@ const arenaState = {
 };
 
 function switchMainView(tabName) {
+    if (tabName === 'arena' && (document.body.classList.contains('mobile-view-active') || window.innerWidth <= 900)) {
+        tabName = 'vision';
+    }
     arenaState.activeTab = tabName;
     if (tabName === 'arena') {
         if (elements.tabViewArena) elements.tabViewArena.classList.add('active');

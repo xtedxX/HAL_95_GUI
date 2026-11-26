@@ -2305,12 +2305,8 @@ body {
         display: none !important;
     }
 
-    #viewPaneArena {
-        height: 100%;
-        min-height: 0;
-        overflow: hidden;
-    }
-
+    #tabViewArena,
+    #viewPaneArena,
     .arena-hud-bar {
         display: none !important;
     }
@@ -2542,12 +2538,8 @@ body.mobile-view-active .vision-telemetry.hal-telemetry {
     display: none !important;
 }
 
-body.mobile-view-active #viewPaneArena {
-    height: 100%;
-    min-height: 0;
-    overflow: hidden;
-}
-
+body.mobile-view-active #tabViewArena,
+body.mobile-view-active #viewPaneArena,
 body.mobile-view-active .arena-hud-bar {
     display: none !important;
 }
