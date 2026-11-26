@@ -1595,22 +1595,27 @@ if (elements.selectChgAnim) {
     });
 }
 const selectMobileRingChaseEl = document.getElementById('selectMobileRingChase');
+const selectPcRingChaseEl = document.getElementById('selectPcRingChase');
 if (elements.selectMobileRingColor) {
     elements.selectMobileRingColor.addEventListener('change', async (e) => {
         const color = e.target.value;
         if (selectMobileRingChaseEl) selectMobileRingChaseEl.value = 'ANIM:OFF';
+        if (selectPcRingChaseEl) selectPcRingChaseEl.value = 'ANIM:OFF';
         await sendCommand(`CMD,COLOR,${color}`);
         logMessage('SYS', `Anneau NeoPixel STM32 réglé sur : ${color}`);
     });
 }
-if (selectMobileRingChaseEl) {
-    selectMobileRingChaseEl.addEventListener('change', async (e) => {
+[selectMobileRingChaseEl, selectPcRingChaseEl].forEach(sel => {
+    if (!sel) return;
+    sel.addEventListener('change', async (e) => {
         const val = e.target.value;
         if (elements.selectMobileRingColor) elements.selectMobileRingColor.value = 'OFF';
+        if (selectMobileRingChaseEl) selectMobileRingChaseEl.value = val;
+        if (selectPcRingChaseEl) selectPcRingChaseEl.value = val;
         await sendCommand(`RING:${val}`);
         logMessage('SYS', `Animation anneau NeoPixel : ${val}`);
     });
-}
+});
 
 const mInputOledMsgEl = document.getElementById('mInputOledMsg');
 const mBtnOledMsgEl = document.getElementById('mBtnOledMsg');
