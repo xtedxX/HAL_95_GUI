@@ -789,24 +789,13 @@
                                 <span class="mdeck-text">ÉTEINDRE</span>
                             </button>
                         </div>
-                        <div class="mdeck-section-title">DIAGNOSTIC MATÉRIEL</div>
-                        <div class="mdeck-grid">
-                            <button type="button" class="mdeck-btn mdeck-diag macro-btn" data-cmd="INFO,FG">
-                                <span class="mdeck-icon">⚡</span>
-                                <span class="mdeck-text">INFO FG</span>
-                            </button>
-                            <button type="button" class="mdeck-btn mdeck-diag macro-btn" data-cmd="INFO,CHG">
-                                <span class="mdeck-icon">🔌</span>
-                                <span class="mdeck-text">INFO CHG</span>
-                            </button>
-                            <button type="button" class="mdeck-btn mdeck-diag macro-btn" data-cmd="INFO,DRV">
-                                <span class="mdeck-icon">🚗</span>
-                                <span class="mdeck-text">INFO DRV</span>
-                            </button>
-                            <button type="button" class="mdeck-btn mdeck-diag macro-btn" data-cmd="INFO,ALL">
-                                <span class="mdeck-icon">📋</span>
-                                <span class="mdeck-text">INFO TOUT</span>
-                            </button>
+                        <div class="mdeck-section-title">ÉTAT MATÉRIEL (ALERTE SI ALLUMÉ)</div>
+                        <div class="mobile-diag-strip" id="mobileDiagStrip" title="Appuyer pour actualiser l'état matériel">
+                            <button type="button" class="mdiag-pill" id="mDiagFg" title="Jauge Batterie BQ27220">⚡</button>
+                            <button type="button" class="mdiag-pill" id="mDiagChg" title="Chargeur BQ25896">🔌</button>
+                            <button type="button" class="mdiag-pill" id="mDiagDrv" title="Driver Moteur DRV8833">🚗</button>
+                            <button type="button" class="mdiag-pill" id="mDiagTof" title="Télémètres ToF G/C/D">📏</button>
+                            <button type="button" class="mdiag-pill" id="mDiagCol" title="Capteur Couleur APDS-9960">🎨</button>
                         </div>
                     </div>
                 </div>
@@ -884,7 +873,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=127"></script>
+    <script src="app.js?v=128"></script>
 </body>
 
 </html>

@@ -363,6 +363,25 @@ function updateSensorTelemetryUI() {
 // ==========================================================================
 // DÉCODAGE ET FORMATAGE DES TRAMES DE DIAGNOSTIC MATÉRIEL (INFO,...)
 // ==========================================================================
+function setMobileDiagFault(elemId, isFault) {
+    const el = document.getElementById(elemId);
+    if (!el) return;
+    el.classList.toggle('fault', !!isFault);
+}
+
+function resetMobileDiagFaults() {
+    ['mDiagFg', 'mDiagChg', 'mDiagDrv', 'mDiagTof', 'mDiagCol'].forEach(id => setMobileDiagFault(id, false));
+}
+
+const mobileDiagStripEl = document.getElementById('mobileDiagStrip');
+if (mobileDiagStripEl) {
+    mobileDiagStripEl.addEventListener('click', () => {
+        if (state.connected) {
+            sendRawData('INFO,ALL\r\n', false);
+        }
+    });
+}
+
 function handleIncomingInfoFrame(line) {
     if (!line) return false;
 
@@ -381,6 +400,7 @@ function handleIncomingInfoFrame(line) {
 
         const vStr = (v / 1000).toFixed(2);
         updateBattery(soc, vStr, i);
+        setMobileDiagFault('mDiagFg', !rdy || soc < 15);
 
         const diagMsg = `⚡ [JAUGE BQ27220] ${rdy ? 'ONLINE' : 'OFFLINE'} | Charge: ${soc}% (${vStr}V) | Courant: ${i > 0 ? '+' : ''}${i} mA (Moy: ${avgI} mA) | Capacité: ${rem}/${full} mAh | Santé: ${soh}% | T°: ${temp}°C | Cycles: ${cyc}`;
         logMessage('DIAG', diagMsg, 'diag-msg');
@@ -400,6 +420,8 @@ function handleIncomingInfoFrame(line) {
 
         const chgNames = ['Pas de charge', 'Pré-charge', 'Charge rapide', 'Pleine (Done)'];
         const chgText = chgNames[chgStat] || `Code ${chgStat}`;
+        const chgFaultVal = parseInt(fault, 16) || 0;
+        setMobileDiagFault('mDiagChg', !rdy || chgFaultVal !== 0);
         const diagMsg = `🔌 [CHARGEUR BQ25896] ${rdy ? 'ONLINE' : 'OFFLINE'} | VBUS: ${(vbus/1000).toFixed(2)}V (${good ? 'Présent' : 'Absent'}) | VSYS: ${(vsys/1000).toFixed(2)}V | VBAT: ${(vbat/1000).toFixed(2)}V | État: ${chgText} (${ichg} mA) | Défaut: ${fault}`;
         logMessage('DIAG', diagMsg, 'diag-msg');
         return true;
@@ -413,6 +435,7 @@ function handleIncomingInfoFrame(line) {
         const motR = parseInt(line.match(/MOT_R:([+-]?\d+)/i)?.[1] ?? '0', 10);
         const decay = line.match(/DECAY:(\w+)/i)?.[1] ?? 'SLOW';
         const stop = line.match(/STOP:(\w+)/i)?.[1] ?? 'BRAKE';
+        setMobileDiagFault('mDiagDrv', fault);
 
         const diagMsg = `🚗 [DRIVER DRV8833] ${en ? 'ACTIF (nSLEEP=1)' : 'VEILLE (nSLEEP=0)'} | Défaut nFAULT: ${fault ? '⚠️ ALARME OCP/TSD/UVLO !' : 'OK (Normal)'} | Moteurs: G:${motL}% / D:${motR}% | Mode: ${decay} Decay / ${stop}`;
         logMessage('DIAG', diagMsg, fault ? 'error-msg' : 'diag-msg');
@@ -427,6 +450,7 @@ function handleIncomingInfoFrame(line) {
         const lRdy = line.match(/L_RDY:(\d+)/i)?.[1] === '1';
         const cRdy = line.match(/C_RDY:(\d+)/i)?.[1] === '1';
         const rRdy = line.match(/R_RDY:(\d+)/i)?.[1] === '1';
+        setMobileDiagFault('mDiagTof', !lRdy || !cRdy || !rRdy);
 
         const diagMsg = `📏 [TÉLÉMÈTRES ToF] Gauche: ${lMm} mm (${lRdy ? 'OK' : 'ERR'}) | Centre: ${cMm} mm (${cRdy ? 'OK' : 'ERR'}) | Droit: ${rMm} mm (${rRdy ? 'OK' : 'ERR'})`;
         logMessage('DIAG', diagMsg, 'diag-msg');
@@ -442,6 +466,7 @@ function handleIncomingInfoFrame(line) {
         const g = parseInt(line.match(/G:(\d+)/i)?.[1] ?? '0', 10);
         const b = parseInt(line.match(/B:(\d+)/i)?.[1] ?? '0', 10);
         const c = parseInt(line.match(/C:(\d+)/i)?.[1] ?? '0', 10);
+        setMobileDiagFault('mDiagCol', !rdy);
 
         const diagMsg = `🎨 [SPECTRO APDS-9960] ${rdy ? 'ONLINE' : 'OFFLINE'} | Proximité: ${prox}/255 | Couleur: ${col} | Bruts: R:${r} G:${g} B:${b} Clear:${c}`;
         logMessage('DIAG', diagMsg, 'diag-msg');
@@ -1035,6 +1060,9 @@ function startTimeSyncScheduler() {
     sendTimeSync();
     sendRawData('FIELD?\r\n', false);
     sendRawData('POS?\r\n', false);
+    setTimeout(() => {
+        if (state.connected) sendRawData('INFO,ALL\r\n', false);
+    }, 1000);
     scheduleNextMinuteTimeSync();
 }
 
@@ -1195,6 +1223,7 @@ async function disconnect() {
 
 function onDisconnected() {
     stopTimeSyncScheduler();
+    resetMobileDiagFaults();
     hideModeSelectModal();
     state.operatingMode = null;
     if (elements.modeIndicatorPill) {
