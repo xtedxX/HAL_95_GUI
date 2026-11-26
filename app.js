@@ -1594,11 +1594,21 @@ if (elements.selectChgAnim) {
         logMessage('SYS', `Animation de charge réglée sur : ${anim}`);
     });
 }
+const selectMobileRingChaseEl = document.getElementById('selectMobileRingChase');
 if (elements.selectMobileRingColor) {
     elements.selectMobileRingColor.addEventListener('change', async (e) => {
         const color = e.target.value;
+        if (selectMobileRingChaseEl) selectMobileRingChaseEl.value = 'ANIM:OFF';
         await sendCommand(`CMD,COLOR,${color}`);
         logMessage('SYS', `Anneau NeoPixel STM32 réglé sur : ${color}`);
+    });
+}
+if (selectMobileRingChaseEl) {
+    selectMobileRingChaseEl.addEventListener('change', async (e) => {
+        const val = e.target.value;
+        if (elements.selectMobileRingColor) elements.selectMobileRingColor.value = 'OFF';
+        await sendCommand(`RING:${val}`);
+        logMessage('SYS', `Animation anneau NeoPixel : ${val}`);
     });
 }
 

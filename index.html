@@ -135,19 +135,39 @@
                     </svg>
                 </button>
 
-                <select id="selectMobileRingColor" class="hal-select hal-select-sm mobile-ring-select"
-                    title="Couleur de l'anneau NeoPixel (STM32)">
-                    <option value="OFF">💡 Anneau : Éteint</option>
-                    <option value="ROUGE">🔴 Anneau : Rouge</option>
-                    <option value="VERT">🟢 Anneau : Vert</option>
-                    <option value="BLEU">🔵 Anneau : Bleu</option>
-                    <option value="BLANC">⚪ Anneau : Blanc</option>
-                    <option value="JAUNE">🟡 Anneau : Jaune</option>
-                    <option value="CYAN">🩵 Anneau : Cyan</option>
-                    <option value="MAGENTA">🟣 Anneau : Violet</option>
-                    <option value="ORANGE">🟠 Anneau : Orange</option>
-                    <option value="ROSE">🩷 Anneau : Rose</option>
-                </select>
+                <div class="mobile-ring-row">
+                    <select id="selectMobileRingColor" class="hal-select hal-select-sm mobile-ring-select"
+                        title="Couleur fixe de l'anneau NeoPixel (STM32)">
+                        <option value="OFF">💡 Anneau : Éteint</option>
+                        <option value="ROUGE">🔴 Anneau : Rouge</option>
+                        <option value="VERT">🟢 Anneau : Vert</option>
+                        <option value="BLEU">🔵 Anneau : Bleu</option>
+                        <option value="BLANC">⚪ Anneau : Blanc</option>
+                        <option value="JAUNE">🟡 Anneau : Jaune</option>
+                        <option value="CYAN">🩵 Anneau : Cyan</option>
+                        <option value="MAGENTA">🟣 Anneau : Violet</option>
+                        <option value="ORANGE">🟠 Anneau : Orange</option>
+                        <option value="ROSE">🩷 Anneau : Rose</option>
+                    </select>
+
+                    <select id="selectMobileRingChase" class="hal-select hal-select-sm mobile-ring-select"
+                        title="Chenillard ou animation spéciale de l'anneau NeoPixel">
+                        <option value="ANIM:OFF">✨ Chenillard : Off</option>
+                        <option value="CHASE:ROUGE">🔴 Chenillard Rouge</option>
+                        <option value="CHASE:VERT">🟢 Chenillard Vert</option>
+                        <option value="CHASE:BLEU">🔵 Chenillard Bleu</option>
+                        <option value="CHASE:CYAN">🩵 Chenillard Cyan</option>
+                        <option value="CHASE:ORANGE">🟠 Chenillard Orange</option>
+                        <option value="CHASE:MAGENTA">🟣 Chenillard Violet</option>
+                        <option value="CHASE:JAUNE">🟡 Chenillard Jaune</option>
+                        <option value="CHASE:BLANC">⚪ Chenillard Blanc</option>
+                        <option value="ANIM:RAINBOW">🌈 Anim : Arc-en-ciel</option>
+                        <option value="ANIM:HAL">👁️ Anim : Pouls HAL-9000</option>
+                        <option value="ANIM:GYRO">🚨 Anim : Gyrophare</option>
+                        <option value="ANIM:SPARKLE">✨ Anim : Scintillement</option>
+                        <option value="ANIM:CYBER">⚡ Anim : Cyber Dual</option>
+                    </select>
+                </div>
             </div>
         </header>
 
@@ -894,7 +914,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=133"></script>
+    <script src="app.js?v=134"></script>
 </body>
 
 </html>
