@@ -232,11 +232,11 @@
                 <!-- Ligne Diagnostic Sous-Systèmes (INFO,...) -->
                 <div class="quick-commands hal-macro-bar hal-diag-bar">
                     <span class="macro-label">DIAGNOSTIC :</span>
-                    <button class="macro-btn hal-btn-diag" data-cmd="INFO,FG" title="État Fuel Gauge BQ27220 (SOC, V, I, Capacité, Cycles, Santé)">⚡ INFO FG</button>
-                    <button class="macro-btn hal-btn-diag" data-cmd="INFO,CHG" title="État Chargeur BQ25896 (VBUS, VSYS, Charge, Défauts)">🔌 INFO CHG</button>
-                    <button class="macro-btn hal-btn-diag" data-cmd="INFO,DRV" title="État Driver DRV8833 (nFAULT, nSLEEP, PWM, Decay)">🚗 INFO DRV</button>
-                    <button class="macro-btn hal-btn-diag" data-cmd="INFO,TOF" title="État Capteurs ToF VL53L0X G/D (Distances, Ready)">📏 INFO TOF</button>
-                    <button class="macro-btn hal-btn-diag" data-cmd="INFO,COLOR" title="État Capteur Couleur APDS-9960 (RGB, Prox, Dominante)">🎨 INFO COLOR</button>
+                    <button id="pcDiagFg" class="macro-btn hal-btn-diag" data-cmd="INFO,FG" title="État Fuel Gauge BQ27220 (SOC, V, I, Capacité, Cycles, Santé)">⚡ INFO FG</button>
+                    <button id="pcDiagChg" class="macro-btn hal-btn-diag" data-cmd="INFO,CHG" title="État Chargeur BQ25896 (VBUS, VSYS, Charge, Défauts)">🔌 INFO CHG</button>
+                    <button id="pcDiagDrv" class="macro-btn hal-btn-diag" data-cmd="INFO,DRV" title="État Driver DRV8833 (nFAULT, nSLEEP, PWM, Decay)">🚗 INFO DRV</button>
+                    <button id="pcDiagTof" class="macro-btn hal-btn-diag" data-cmd="INFO,TOF" title="État Capteurs ToF VL53L0X G/C/D (Distances, Ready)">📏 INFO TOF</button>
+                    <button id="pcDiagCol" class="macro-btn hal-btn-diag" data-cmd="INFO,COLOR" title="État Capteur Couleur APDS-9960 (RGB, Prox, Dominante)">🎨 INFO COLOR</button>
                     <button class="macro-btn hal-btn-diag" data-cmd="INFO,ENC" title="État Encodeurs & Odométrie (Distances, Ticks, Vitesses)">⏱️ INFO ENC</button>
                     <button class="macro-btn hal-btn-diag" data-cmd="INFO,SERVO" title="État Pince Servomoteur (Angle, Sweep)">🦾 INFO SERVO</button>
                     <button class="macro-btn hal-btn-diag" data-cmd="INFO,ALL" title="Diagnostic complet de tous les sous-systèmes">📋 INFO TOUT</button>
@@ -873,7 +873,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=129"></script>
+    <script src="app.js?v=130"></script>
 </body>
 
 </html>

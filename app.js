@@ -365,8 +365,10 @@ function updateSensorTelemetryUI() {
 // ==========================================================================
 function setMobileDiagFault(elemId, isFault) {
     const el = document.getElementById(elemId);
-    if (!el) return;
-    el.classList.toggle('fault', !!isFault);
+    if (el) el.classList.toggle('fault', !!isFault);
+    const pcId = elemId.replace(/^mDiag/, 'pcDiag');
+    const pcEl = document.getElementById(pcId);
+    if (pcEl) pcEl.classList.toggle('fault', !!isFault);
 }
 
 function resetMobileDiagFaults() {
