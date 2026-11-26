@@ -796,6 +796,8 @@ function triggerVuMeter(meterEl, activeCount = 4) {
     }, 180);
 }
 
+let bleRxLineBuffer = '';
+
 function handleBleNotification(event) {
     pulseHalEye();
     const value = event.target.value;
@@ -825,8 +827,10 @@ function handleBleNotification(event) {
     // Traitement télémétrie capteurs ToF & APDS-9960
     processIncomingSensorTelemetry(text);
 
-    // Détection des trames du Plan 2D Tactique & Réflexion Autonome (POS, OBS, CAN, TRAP, DELIVERED, MISSION_STATS, ODO)
-    const lines = text.split(/\r?\n/);
+    // Détection des trames du Plan 2D Tactique & Réflexion Autonome (avec bufferisation anti-fragmentation BLE)
+    bleRxLineBuffer += text;
+    const lines = bleRxLineBuffer.split(/\r?\n/);
+    bleRxLineBuffer = lines.pop() || '';
     for (const l of lines) {
         const trimmedL = l.trim();
         if (trimmedL.length > 0) {
@@ -1019,6 +1023,8 @@ function scheduleNextMinuteTimeSync() {
 
 function startTimeSyncScheduler() {
     sendTimeSync();
+    sendRawData('FIELD?\r\n', false);
+    sendRawData('POS?\r\n', false);
     scheduleNextMinuteTimeSync();
 }
 
@@ -3145,23 +3151,23 @@ if (elements.mbtnBeep) {
 }
 
 // ==========================================================================
-// 8. PLAN 2D TACTIQUE & RÉFLEXION AUTONOME (ARÈNE 2480 x 1220 mm)
+// 8. PLAN 2D TACTIQUE & RÉFLEXION AUTONOME (ARÈNE 2000 x 1020 mm par défaut)
 // ==========================================================================
 const arenaState = {
-    fieldLength: 2480,       // Longueur X (mm)
-    fieldWidth: 1220,        // Largeur Y (mm)
-    centerX: 1240,           // Centre X (mm)
-    centerY: 610,            // Centre Y (mm)
+    fieldLength: 2000,       // Longueur X (mm)
+    fieldWidth: 1020,        // Largeur Y (mm)
+    centerX: 1000,           // Centre X (mm)
+    centerY: 510,            // Centre Y (mm)
     geofenceMargin: 80,      // Marge de sécurité geofence virtuelle (mm)
 
-    // Zone peigne de livraison (X = 2360..2430 mm, 6 casiers)
-    deliverLineX: 2360,
-    deliverSlotX: 2430,
+    // Zone peigne de livraison (X = 1880..1950 mm, 6 casiers)
+    deliverLineX: 1880,
+    deliverSlotX: 1950,
     deliverYBase: 150,
     deliverYStep: 100, // Y = 150 + (k % 6) * 100 -> 150, 250, 350, 450, 550, 650 mm
 
-    // Pose actuelle robot (10 Hz)
-    pose: { x: 1240, y: 610, theta: 0 },
+    // Pose actuelle robot (2 Hz en veille, 10 Hz en mission/stream)
+    pose: { x: 72, y: 510, theta: 0 },
     odometryDistMm: 0,
     trail: [],               // [{x, y, theta, t}]
     maxTrailPoints: 600,
@@ -3305,6 +3311,23 @@ function parseArenaTelemetry(line) {
     const posMatch = trimmed.match(/^POS,\s*(-?\d+),\s*(-?\d+),\s*(-?\d+)/i);
     if (posMatch) {
         updateRobotPose(parseInt(posMatch[1], 10), parseInt(posMatch[2], 10), parseInt(posMatch[3], 10));
+        return true;
+    }
+
+    // 1b. FIELD,<L_mm>,<W_mm>
+    const fieldMatch = trimmed.match(/^FIELD,\s*(\d+),\s*(\d+)/i);
+    if (fieldMatch) {
+        const lMm = parseInt(fieldMatch[1], 10);
+        const wMm = parseInt(fieldMatch[2], 10);
+        if (lMm >= 500 && wMm >= 400) {
+            arenaState.fieldLength = lMm;
+            arenaState.fieldWidth = wMm;
+            arenaState.centerX = Math.round(lMm / 2);
+            arenaState.centerY = Math.round(wMm / 2);
+            arenaState.deliverLineX = lMm - 120;
+            arenaState.deliverSlotX = lMm - 50;
+            if (arenaState.activeTab === 'arena') drawArena();
+        }
         return true;
     }
 
@@ -3519,7 +3542,7 @@ function drawArena() {
     ctx.fillStyle = 'rgba(0, 240, 255, 0.5)';
     ctx.font = '9px monospace';
     ctx.textAlign = 'center';
-    ctx.fillText('CENTRE (1240, 610)', cx, cy + 18);
+    ctx.fillText(`CENTRE (${arenaState.centerX}, ${arenaState.centerY})`, cx, cy + 18);
     ctx.restore();
 
     // 5. Zone de livraison : Peigne de dépôt (X=2360..2430 mm)
