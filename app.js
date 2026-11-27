@@ -1200,15 +1200,38 @@ async function disconnect() {
         state.autoTracking = false;
         updateAutoTrackUI();
     }
-    // Assurer l'arrêt préalable des moteurs
-    try {
-        await sendRawData('CMD,MOT,0,0\r\n');
-        await sendRawData('MOTOR,STOP\r\n');
-    } catch (_) {}
+    // Assurer l'arrêt préalable des moteurs sans jamais bloquer la déconnexion (timeout 250 ms)
+    if (state.connected) {
+        try {
+            await Promise.race([
+                (async () => {
+                    await sendRawData('CMD,MOT,0,0\r\n');
+                    await sendRawData('MOTOR,STOP\r\n');
+                })(),
+                new Promise(resolve => setTimeout(resolve, 250))
+            ]);
+        } catch (_) {}
+    }
 
     state.connected = false;
-    if (state.bleDevice && state.bleDevice.gatt && state.bleDevice.gatt.connected) {
-        state.bleDevice.gatt.disconnect();
+    if (state.txCharacteristic) {
+        try {
+            state.txCharacteristic.removeEventListener('characteristicvaluechanged', handleBleNotification);
+            await Promise.race([
+                state.txCharacteristic.stopNotifications(),
+                new Promise(resolve => setTimeout(resolve, 200))
+            ]);
+        } catch (_) {}
+    }
+    if (state.bleDevice) {
+        try {
+            state.bleDevice.removeEventListener('gattserverdisconnected', onDisconnected);
+            if (state.bleDevice.gatt && state.bleDevice.gatt.connected) {
+                state.bleDevice.gatt.disconnect();
+            }
+        } catch (e) {
+            console.warn('Erreur déconnexion BLE:', e);
+        }
     }
     if (state.serialReader) {
         try { await state.serialReader.cancel(); } catch(e){}
@@ -3331,6 +3354,7 @@ const arenaState = {
     maxTrailPoints: 600,
 
     // Cibles et obstacles répertoriés
+    tofPoints: [],           // [{x, y}] - nuage de points bruts du ToF central
     obstacles: [],           // [{x, y, type, t}]
     grippedTargets: [],      // [{x, y, color, t}]
     traps: [],               // [{x, y, color, radius: 180, t}]
@@ -3423,6 +3447,14 @@ function updateRobotPose(x, y, theta) {
     if (arenaState.activeTab === 'arena') {
         drawArena();
     }
+}
+
+function addTofPoint(x, y) {
+    arenaState.tofPoints.push({ x, y });
+    if (arenaState.tofPoints.length > 800) {
+        arenaState.tofPoints.shift();
+    }
+    if (arenaState.activeTab === 'arena') drawArena();
 }
 
 function addScannedObstacle(x, y, type) {
@@ -3535,6 +3567,15 @@ function parseArenaTelemetry(line) {
     if (obsMatch) {
         addScannedObstacle(parseInt(obsMatch[1], 10), parseInt(obsMatch[2], 10), obsMatch[3]);
         return true;
+    }
+
+    // 2bis. TOF_C,<x_mm>,<y_mm> (chaque point mesuré par le ToF central en scan, même concaténé)
+    const tofCMatches = [...trimmed.matchAll(/\bTOF_C,\s*(-?\d+),\s*(-?\d+)/gi)];
+    if (tofCMatches.length > 0) {
+        tofCMatches.forEach((m) => {
+            addTofPoint(parseInt(m[1], 10), parseInt(m[2], 10));
+        });
+        if (/^TOF_C,\s*-?\d+,\s*-?\d+$/i.test(trimmed)) return true;
     }
 
     // 3. CAN,<x_mm>,<y_mm>,<ROUGE|VERT|BLEU>
@@ -3822,6 +3863,18 @@ function drawArena() {
         ctx.restore();
     });
 
+    // 6bis. Nuage de points bruts du ToF central (TOF_C) en blanc
+    if (arenaState.tofPoints.length > 0) {
+        ctx.save();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.92)';
+        arenaState.tofPoints.forEach((pt) => {
+            ctx.beginPath();
+            ctx.arc(toPxX(pt.x), toPxY(pt.y), 2.6, 0, Math.PI * 2);
+            ctx.fill();
+        });
+        ctx.restore();
+    }
+
     // 7. Obstacles ToF scannés (OBS)
     arenaState.obstacles.forEach((obs) => {
         const oPx = toPxX(obs.x);
@@ -4015,6 +4068,7 @@ if (elements.btnArenaClearTrail) {
     elements.btnArenaClearTrail.addEventListener('click', () => {
         arenaState.trail = [];
         arenaState.trailClearedAt = { x: arenaState.pose.x, y: arenaState.pose.y };
+        arenaState.tofPoints = [];
         arenaState.obstacles = [];
         arenaState.traps = [];
         arenaState.grippedTargets = [];
