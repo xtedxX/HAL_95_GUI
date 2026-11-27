@@ -284,6 +284,10 @@ function formatMissionTime(totalSec) {
 function startMissionChrono() {
     if (missionChronoTimer) return;
     missionStartMs = Date.now();
+    arenaState.odometryDistMm = 0;
+    if (elements.arenaOdoVal) {
+        elements.arenaOdoVal.textContent = '0.00 m';
+    }
     const updateLive = () => {
         if (!missionStartMs || !elements.tagMissionChrono) return;
         const sec = Math.floor((Date.now() - missionStartMs) / 1000);
@@ -3482,7 +3486,11 @@ function updateRobotPose(x, y, theta) {
     }
 
     const lastPt = arenaState.trail[arenaState.trail.length - 1];
-    if (!lastPt || Math.hypot(lastPt.x - x, lastPt.y - y) > 300) {
+    const stepDist = lastPt ? Math.hypot(lastPt.x - x, lastPt.y - y) : 0;
+    if (lastPt && stepDist > 0 && stepDist < 300) {
+        updateOdometry(Math.round((arenaState.odometryDistMm || 0) + stepDist));
+    }
+    if (!lastPt || stepDist > 300) {
         arenaState.trail = [{ x, y, theta, t: now }];
     } else if (Math.hypot(lastPt.x - x, lastPt.y - y) > 12 || Math.abs(lastPt.theta - theta) > 4) {
         arenaState.trail.push({ x, y, theta, t: now });
