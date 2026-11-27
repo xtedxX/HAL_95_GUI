@@ -271,15 +271,65 @@ function parseBatteryAndStatusFrame(text) {
     }
 }
 
-// 4. Détection et affichage du chronomètre / statut de fin de mission STM32
+// 4. Détection et affichage du chronomètre / statut de mission STM32 (en direct + bilan final)
+let missionChronoTimer = null;
+let missionStartMs = null;
+
+function formatMissionTime(totalSec) {
+    const mm = Math.floor(totalSec / 60).toString().padStart(2, '0');
+    const ss = (totalSec % 60).toString().padStart(2, '0');
+    return `${mm}:${ss}`;
+}
+
+function startMissionChrono() {
+    if (missionChronoTimer) return;
+    missionStartMs = Date.now();
+    const updateLive = () => {
+        if (!missionStartMs || !elements.tagMissionChrono) return;
+        const sec = Math.floor((Date.now() - missionStartMs) / 1000);
+        elements.tagMissionChrono.textContent = `⏱️ ${formatMissionTime(sec)} (${sec}s)`;
+        elements.tagMissionChrono.className = 'tag hal-tag tag-chrono has-chrono';
+    };
+    updateLive();
+    missionChronoTimer = setInterval(updateLive, 1000);
+}
+
+function stopMissionChrono() {
+    if (missionChronoTimer) {
+        clearInterval(missionChronoTimer);
+        missionChronoTimer = null;
+    }
+    missionStartMs = null;
+}
+
 function handleMissionStatusAndChrono(text) {
     if (!text) return;
-    // Format STM32 : [HAL-95] <STATUT> | Chrono : MM:SS (X s)
-    const match = text.match(/\[HAL-95\]\s*([^|\r\n]+)\s*\|\s*Chrono\s*:\s*([0-9]{1,2}:[0-9]{2})\s*\(([0-9]+)\s*s\)/i);
+
+    // Démarrage automatique du chrono en direct dès le début de mission
+    if (/\[HAL-95\]\s*(MISSION AUTONOME DEMARREE|ETAPE 1:|SCAN 360)/i.test(text)) {
+        startMissionChrono();
+    }
+
+    // Format STM32 actuel : [HAL-95] <STATUT> | CANS:X | DUREE:MM:SS | DIST:Xmm
+    const dureeMatch = text.match(/\[HAL-95\]\s*([^|\r\n]+)\s*\|\s*CANS:\s*\d+\s*\|\s*DUREE:\s*([0-9]{1,2}):([0-9]{2})/i);
+    // Ancien format STM32 : [HAL-95] <STATUT> | Chrono : MM:SS (X s)
+    const legacyMatch = text.match(/\[HAL-95\]\s*([^|\r\n]+)\s*\|\s*Chrono\s*:\s*([0-9]{1,2}:[0-9]{2})\s*\(([0-9]+)\s*s\)/i);
+
+    const match = dureeMatch || legacyMatch;
     if (match) {
+        stopMissionChrono();
         const status = match[1].trim();
-        const timeStr = match[2];
-        const secStr = match[3];
+        let timeStr = '';
+        let secStr = '';
+        if (dureeMatch) {
+            const mm = parseInt(dureeMatch[2], 10);
+            const ss = parseInt(dureeMatch[3], 10);
+            timeStr = `${dureeMatch[2].padStart(2, '0')}:${dureeMatch[3]}`;
+            secStr = `${mm * 60 + ss}`;
+        } else {
+            timeStr = legacyMatch[2];
+            secStr = legacyMatch[3];
+        }
 
         if (elements.tagMissionChrono) {
             elements.tagMissionChrono.textContent = `⏱️ ${timeStr} (${secStr}s)`;
@@ -288,16 +338,16 @@ function handleMissionStatusAndChrono(text) {
             if (/COMPLETE|REUSSI|TERMINE|VICTOIRE/i.test(status)) {
                 elements.tagMissionChrono.classList.add('has-chrono');
                 if (elements.asservStatus) {
-                    elements.asservStatus.textContent = `🏁 MISSION ACCOMPLIE EN ${timeStr} (${secStr}s) • CIBLE VERROUILLÉE`;
+                    elements.asservStatus.textContent = `🏁 MISSION ACCOMPLIE EN ${timeStr} (${secStr}s)`;
                 }
-                logMessage('HAL-95', `🏁 [CHRONO] Mission accomplie avec succès en ${timeStr} (${secStr}s) ! Saisie validée.`, 'hal-quote');
+                logMessage('HAL-95', `🏁 [CHRONO] Mission accomplie en ${timeStr} (${secStr}s) !`, 'hal-quote');
                 pulseHalEye();
             } else if (/INTERROMP|ARRET|STOP/i.test(status)) {
                 elements.tagMissionChrono.classList.add('interrupted');
                 if (elements.asservStatus) {
-                    elements.asservStatus.textContent = `⚠️ MISSION INTERROMPUE (PA10) À ${timeStr} (${secStr}s) • STANDBY`;
+                    elements.asservStatus.textContent = `⚠️ MISSION INTERROMPUE À ${timeStr} (${secStr}s) • STANDBY`;
                 }
-                logMessage('HAL-95', `🛑 [MISSION] Interruption manuelle locale (Bouton PA10) à ${timeStr} (${secStr}s). Moteurs sécurisés.`, 'hal-quote');
+                logMessage('HAL-95', `🛑 [MISSION] Interruption à ${timeStr} (${secStr}s).`, 'hal-quote');
             } else {
                 elements.tagMissionChrono.classList.add('has-chrono');
                 logMessage('HAL-95', `⏱️ [CHRONO] ${status} : ${timeStr} (${secStr}s)`, 'hal-quote');
@@ -1248,6 +1298,7 @@ async function disconnect() {
 }
 
 function onDisconnected() {
+    stopMissionChrono();
     stopTimeSyncScheduler();
     resetMobileDiagFaults();
     hideModeSelectModal();
@@ -3500,10 +3551,18 @@ function addDeliveredCan(slotNum, x, y) {
 }
 
 function showMissionStats(cans, timeS, distMm) {
+    stopMissionChrono();
+    const mm = Math.floor(timeS / 60).toString().padStart(2, '0');
+    const ss = (timeS % 60).toString().padStart(2, '0');
+    if (elements.tagMissionChrono) {
+        elements.tagMissionChrono.textContent = `⏱️ ${mm}:${ss} (${timeS}s)`;
+        elements.tagMissionChrono.className = 'tag hal-tag tag-chrono has-chrono';
+    }
+    if (distMm > 0) {
+        updateOdometry(distMm);
+    }
     if (elements.statCansCount) elements.statCansCount.textContent = `${cans}`;
     if (elements.statTimeDuration) {
-        const mm = Math.floor(timeS / 60).toString().padStart(2, '0');
-        const ss = (timeS % 60).toString().padStart(2, '0');
         elements.statTimeDuration.textContent = `${mm}:${ss} (${timeS}s)`;
     }
     if (elements.statDistanceTotal) {
