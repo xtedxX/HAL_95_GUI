@@ -1450,32 +1450,61 @@ function getTimestamp() {
     return now.toTimeString().split(' ')[0] + '.' + String(now.getMilliseconds()).padStart(3, '0');
 }
 
+const TERMINAL_MAX_DOM_LINES = 250;
+const fullLogLines = [];
+let terminalScrollPending = false;
+
+function scheduleTerminalScroll() {
+    if (!elements.chkAutoScroll.checked || terminalScrollPending) return;
+    terminalScrollPending = true;
+    requestAnimationFrame(() => {
+        terminalScrollPending = false;
+        if (elements.chkAutoScroll.checked) {
+            elements.terminalOutput.scrollTop = elements.terminalOutput.scrollHeight;
+        }
+    });
+}
+
 function logMessage(prefix, message, cssClass = 'system-msg') {
+    const ts = getTimestamp();
     const entry = document.createElement('div');
     entry.className = `log-entry ${cssClass}`;
 
     const timestamp = document.createElement('span');
     timestamp.className = 'timestamp';
-    timestamp.textContent = `[${getTimestamp()}]`;
+    timestamp.textContent = `[${ts}]`;
 
     const content = document.createElement('span');
     content.className = 'content';
 
     if (prefix === 'RX') {
-        content.innerHTML = `<span class="direction">&lt;= [RX]</span> ${escapeHtml(message)}`;
+        const dir = document.createElement('span');
+        dir.className = 'direction';
+        dir.textContent = '<= [RX] ';
+        content.appendChild(dir);
+        content.appendChild(document.createTextNode(message));
+        fullLogLines.push(`[${ts}] <= [RX] ${message}`);
     } else if (prefix === 'TX') {
-        content.innerHTML = `<span class="direction">=&gt; [TX]</span> ${escapeHtml(message)}`;
+        const dir = document.createElement('span');
+        dir.className = 'direction';
+        dir.textContent = '=> [TX] ';
+        content.appendChild(dir);
+        content.appendChild(document.createTextNode(message));
+        fullLogLines.push(`[${ts}] => [TX] ${message}`);
     } else {
         content.textContent = message;
+        fullLogLines.push(`[${ts}] ${message}`);
     }
 
     entry.appendChild(timestamp);
     entry.appendChild(content);
     elements.terminalOutput.appendChild(entry);
 
-    if (elements.chkAutoScroll.checked) {
-        elements.terminalOutput.scrollTop = elements.terminalOutput.scrollHeight;
+    while (elements.terminalOutput.childElementCount > TERMINAL_MAX_DOM_LINES) {
+        elements.terminalOutput.removeChild(elements.terminalOutput.firstChild);
     }
+
+    scheduleTerminalScroll();
 }
 
 function escapeHtml(text) {
@@ -2006,11 +2035,12 @@ elements.halLogoBadge.addEventListener('click', () => {
 // Outils terminal (Clear & Download)
 elements.btnClearLog.addEventListener('click', () => {
     elements.terminalOutput.innerHTML = '';
+    fullLogLines.length = 0;
     logMessage('SYS', 'Console réinitialisée.');
 });
 
 elements.btnDownloadLog.addEventListener('click', () => {
-    const text = elements.terminalOutput.innerText;
+    const text = fullLogLines.join('\n');
     const blob = new Blob([text], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
