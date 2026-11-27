@@ -3746,7 +3746,22 @@ function resizeArenaCanvas() {
     canvas.height = Math.round(rect.height * dpr);
 }
 
+let arenaDrawPending = false;
+let arenaLastDrawMs = 0;
+
 function drawArena() {
+    const now = performance.now();
+    if (now - arenaLastDrawMs < 90) {
+        if (!arenaDrawPending) {
+            arenaDrawPending = true;
+            setTimeout(() => {
+                arenaDrawPending = false;
+                drawArena();
+            }, 90);
+        }
+        return;
+    }
+    arenaLastDrawMs = now;
     const canvas = elements.arena2dCanvas;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
